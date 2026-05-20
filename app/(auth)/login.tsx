@@ -60,7 +60,7 @@ export default function LoginScreen() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: 'https://shoply-steel.vercel.app' },
+        options: { redirectTo: 'https://shoply-steel.vercel.app/auth-callback' },
       });
       if (error) throw error;
     } catch (err: unknown) {
