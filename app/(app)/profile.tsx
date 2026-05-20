@@ -143,7 +143,9 @@ export default function ProfileScreen() {
       </View>
 
       <Text style={styles.version}>Shoply v1.0.0</Text>
-      <Button label="Sign Out" onPress={handleSignOut} variant="danger" style={styles.signOutBtn} />
+ <TouchableOpacity onPress={handleSignOut} style={[styles.signOutBtn, {backgroundColor: '#EF4444', padding: 16, borderRadius: 12, alignItems: 'center'}]}>
+  <Text style={{color: 'white', fontWeight: 'bold', fontSize: 16}}>Sign Out</Text>
+</TouchableOpacity>
 
       {/* Info Modal */}
       <Modal visible={!!modalContent} transparent animationType="slide" onRequestClose={() => setModalContent(null)}>
