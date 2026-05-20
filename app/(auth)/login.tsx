@@ -56,11 +56,17 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+const handleGoogleLogin = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: 'https://shoply-steel.vercel.app/auth-callback' },
+        options: {
+          redirectTo: 'https://shoply-steel.vercel.app/auth-callback',
+          skipBrowserRedirect: false,
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
       });
       if (error) throw error;
     } catch (err: unknown) {
