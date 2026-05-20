@@ -1,5 +1,5 @@
 // app/(auth)/login.tsx
-// Login screen with form validation
+// Login screen with form validation + Google OAuth
 
 import React, { useState } from 'react';
 import {
@@ -20,8 +20,8 @@ import Toast from 'react-native-toast-message';
 import { useAuthStore } from '../../src/store/authStore';
 import { Button } from '../../src/components/ui';
 import { Colors, Radii, Spacing, Typography } from '../../src/lib/design';
+import { supabase } from '../../src/lib/supabase';
 
-// ─── Validation schema ───────────────────────────────────
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -56,6 +56,21 @@ export default function LoginScreen() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      const redirectTo = typeof window !== 'undefined'
+        ? `${window.location.origin}/`
+        : 'https://shoply-steel.vercel.app/';
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo },
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      Toast.show({ type: 'error', text1: 'Google login failed' });
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -65,18 +80,15 @@ export default function LoginScreen() {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>🛒</Text>
           <Text style={styles.appName}>Shoply</Text>
           <Text style={styles.tagline}>Shopping, together.</Text>
         </View>
 
-        {/* Form card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Welcome back</Text>
 
-          {/* Email field */}
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
             <Controller
@@ -103,7 +115,6 @@ export default function LoginScreen() {
             )}
           </View>
 
-          {/* Password field */}
           <View style={styles.field}>
             <Text style={styles.label}>Password</Text>
             <View style={styles.passwordWrapper}>
@@ -138,16 +149,27 @@ export default function LoginScreen() {
             )}
           </View>
 
-          {/* Submit */}
           <Button
             label="Sign In"
             onPress={handleSubmit(onSubmit)}
             loading={isLoading}
             style={styles.submitBtn}
           />
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Google Sign In */}
+          <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin}>
+            <Text style={styles.googleIcon}>G</Text>
+            <Text style={styles.googleBtnText}>Continue with Google</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Sign up link */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
           <Link href="/(auth)/signup" asChild>
@@ -169,35 +191,25 @@ const styles = StyleSheet.create({
     padding: Spacing.base,
     gap: Spacing.xl,
   },
-  header: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  logo: {
-    fontSize: 56,
-  },
+  header: { alignItems: 'center', gap: Spacing.sm },
+  logo: { fontSize: 56 },
   appName: {
     fontSize: Typography['3xl'],
     fontWeight: Typography.extrabold,
     color: Colors.text,
     letterSpacing: -1,
   },
-  tagline: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-  },
+  tagline: { fontSize: Typography.base, color: Colors.textSecondary },
   card: {
     backgroundColor: Colors.bgCard,
     borderRadius: Radii.xl,
     padding: Spacing.xl,
     gap: Spacing.base,
-    ...{
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 16,
-      elevation: 4,
-    },
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   cardTitle: {
     fontSize: Typography.xl,
@@ -234,21 +246,42 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   eyeIcon: { fontSize: 18 },
-  errorText: {
-    fontSize: Typography.xs,
-    color: Colors.danger,
-    marginTop: 2,
-  },
+  errorText: { fontSize: Typography.xs, color: Colors.danger, marginTop: 2 },
   submitBtn: { marginTop: Spacing.sm },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+  dividerText: { fontSize: Typography.sm, color: Colors.textTertiary },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: Radii.md,
+    paddingVertical: 13,
+    backgroundColor: Colors.bgCard,
+  },
+  googleIcon: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4285F4',
+  },
+  googleBtnText: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.text,
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  footerText: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-  },
+  footerText: { fontSize: Typography.base, color: Colors.textSecondary },
   footerLink: {
     fontSize: Typography.base,
     fontWeight: Typography.semibold,
