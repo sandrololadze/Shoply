@@ -15,6 +15,7 @@ import { useItems, useAddItem, useToggleItem, useDeleteItem, useEditItem } from 
 import { useGroups } from '../../../../src/hooks/useGroups';
 import { useAuthStore } from '../../../../src/store/authStore';
 import { useNetworkStore } from '../../../../src/store/networkStore';
+import { useLanguageStore } from '../../../../src/store/languageStore';
 import { Avatar, Button, EmptyState, ErrorState, LoadingScreen } from '../../../../src/components/ui';
 import { Colors, Radii, Shadows, Spacing, Typography } from '../../../../src/lib/design';
 import type { Item } from '../../../../src/types';
@@ -33,6 +34,7 @@ export default function GroupDetailScreen() {
   const navigation = useNavigation();
   const user = useAuthStore((s) => s.user)!;
   const isOnline = useNetworkStore((s) => s.isOnline);
+  const { t } = useLanguageStore();
 
   const { data: groups } = useGroups();
   const group = groups?.find((g) => g.id === groupId);
@@ -53,7 +55,7 @@ export default function GroupDetailScreen() {
         <View style={styles.headerActions}>
           {!isOnline && (
             <View style={styles.offlineBadge}>
-              <Text style={styles.offlineBadgeText}>Offline</Text>
+              <Text style={styles.offlineBadgeText}>{t('offline')}</Text>
             </View>
           )}
           <TouchableOpacity onPress={() => router.push(`/(app)/group/${groupId}/activity`)} style={styles.headerBtn}>
@@ -65,7 +67,7 @@ export default function GroupDetailScreen() {
         </View>
       ),
     });
-  }, [navigation, group?.name, groupId, isOnline]);
+  }, [navigation, group?.name, groupId, isOnline, t]);
 
   const addForm = useForm<ItemForm>({ resolver: zodResolver(itemSchema) });
 
@@ -113,7 +115,7 @@ export default function GroupDetailScreen() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg === 'CONFLICT') {
-        Toast.show({ type: 'error', text1: 'Edit conflict', text2: 'Someone else edited this item — refreshing' });
+        Toast.show({ type: 'error', text1: 'Edit conflict', text2: 'Someone else edited this item' });
       } else {
         Toast.show({ type: 'error', text1: 'Failed to update item' });
       }
@@ -123,12 +125,12 @@ export default function GroupDetailScreen() {
 
   const handleDelete = (item: Item) => {
     Alert.alert(
-      'Delete Item',
-      `Remove "${item.name}" from the list?`,
+      t('deleteItem'),
+      `"${item.name}" ${t('deleteConfirm')}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('delete'),
           style: 'destructive',
           onPress: () => {
             deleteItem.mutate(item.id, {
@@ -155,7 +157,7 @@ export default function GroupDetailScreen() {
   const activeItems = items?.filter((i) => i.status === 'active') ?? [];
   const completedItems = items?.filter((i) => i.status === 'completed') ?? [];
 
-  if (isLoading) return <LoadingScreen message="Loading list..." />;
+  if (isLoading) return <LoadingScreen message={t('loadingLists')} />;
   if (isError) return <ErrorState message="Failed to load items" onRetry={refetch} />;
 
   return (
@@ -166,7 +168,7 @@ export default function GroupDetailScreen() {
             <Ionicons name="link-outline" size={16} color={Colors.primary} />
             <Text style={styles.shareCode}>{group.invite_code}</Text>
           </View>
-          <Text style={styles.shareHint}>Tap to invite friends</Text>
+          <Text style={styles.shareHint}>{t('tapToInvite')}</Text>
         </TouchableOpacity>
       )}
 
@@ -181,9 +183,9 @@ export default function GroupDetailScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="📝"
-            title="List is empty"
-            subtitle="Add items to start your shopping list."
-            action={{ label: 'Add First Item', onPress: () => setShowAddItem(true) }}
+            title={t('listEmpty')}
+            subtitle={t('listEmptySubtitle')}
+            action={{ label: t('addFirstItem'), onPress: () => setShowAddItem(true) }}
           />
         }
         renderItem={({ item }) => {
@@ -191,7 +193,7 @@ export default function GroupDetailScreen() {
             return (
               <View style={styles.sectionDivider}>
                 <View style={styles.sectionLine} />
-                <Text style={styles.sectionLabel}>Completed ({completedItems.length})</Text>
+                <Text style={styles.sectionLabel}>{t('completed')} ({completedItems.length})</Text>
                 <View style={styles.sectionLine} />
               </View>
             );
@@ -203,6 +205,7 @@ export default function GroupDetailScreen() {
               onToggle={() => toggleItem.mutate(item)}
               onEdit={() => openEdit(item)}
               onDelete={() => handleDelete(item)}
+              youLabel={t('you')}
             />
           );
         }}
@@ -215,8 +218,8 @@ export default function GroupDetailScreen() {
 
       <ItemFormModal
         visible={showAddItem}
-        title="Add Item"
-        submitLabel="Add to List"
+        title={t('addItem')}
+        submitLabel={t('addToList')}
         form={addForm}
         onSubmit={handleAddItem}
         onClose={() => { setShowAddItem(false); addForm.reset(); }}
@@ -225,8 +228,8 @@ export default function GroupDetailScreen() {
 
       <ItemFormModal
         visible={!!editingItem}
-        title="Edit Item"
-        submitLabel="Save Changes"
+        title={t('editItem')}
+        submitLabel={t('saveChanges')}
         form={editForm}
         onSubmit={handleEditItem}
         onClose={() => setEditingItem(null)}
@@ -236,8 +239,8 @@ export default function GroupDetailScreen() {
   );
 }
 
-function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete }: {
-  item: Item; currentUserId: string;
+function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel }: {
+  item: Item; currentUserId: string; youLabel: string;
   onToggle: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   const isCompleted = item.status === 'completed';
@@ -253,7 +256,6 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete }: {
       >
         {isCompleted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
       </TouchableOpacity>
-
       <View style={styles.itemContent}>
         <Text style={[styles.itemName, isCompleted && styles.itemNameCompleted]}>{item.name}</Text>
         <View style={styles.itemMeta}>
@@ -263,18 +265,14 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete }: {
           <View style={styles.itemAuthor}>
             <Avatar userId={item.added_by} displayName={addedByName} size={16} />
             <Text style={styles.itemMetaText}>
-              {isMyItem ? 'You' : addedByName}{' · '}
+              {isMyItem ? youLabel : addedByName}{' · '}
               {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
             </Text>
           </View>
         </View>
         {item.notes && <Text style={styles.itemNotes}>{item.notes}</Text>}
         {item.url && (
-          <TouchableOpacity
-            style={styles.urlChip}
-            onPress={() => Linking.openURL(item.url!)}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.urlChip} onPress={() => Linking.openURL(item.url!)} activeOpacity={0.7}>
             <Ionicons name="open-outline" size={12} color={Colors.primary} />
             <Text style={styles.urlChipText} numberOfLines={1}>
               {item.url.replace(/^https?:\/\/(www\.)?/, '')}
@@ -282,16 +280,11 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete }: {
           </TouchableOpacity>
         )}
       </View>
-
       <View style={styles.itemActions}>
         <TouchableOpacity style={styles.itemActionBtn} onPress={onEdit}>
           <Ionicons name="pencil-outline" size={16} color={Colors.textTertiary} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.itemActionBtn}
-          onPress={onDelete}
-          activeOpacity={0.6}
-        >
+        <TouchableOpacity style={styles.itemActionBtn} onPress={onDelete} activeOpacity={0.6}>
           <Ionicons name="trash-outline" size={16} color={Colors.danger} />
         </TouchableOpacity>
       </View>
@@ -305,14 +298,12 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
   onSubmit: (data: ItemForm) => void;
   onClose: () => void; isLoading: boolean;
 }) {
+  const { t } = useLanguageStore();
   const [fetching, setFetching] = useState(false);
 
   const fetchProduct = async () => {
     const url = form.getValues('url');
-    if (!url) {
-      Toast.show({ type: 'error', text1: 'Enter a URL first' });
-      return;
-    }
+    if (!url) { Toast.show({ type: 'error', text1: 'Enter a URL first' }); return; }
     setFetching(true);
     try {
       const res = await fetch('https://shoply-steel.vercel.app/api/fetch-product', {
@@ -339,7 +330,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
           <Text style={styles.modalTitle}>{title}</Text>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Product URL (optional)</Text>
+            <Text style={styles.fieldLabel}>{t('productUrl')}</Text>
             <View style={styles.urlRow}>
               <Controller
                 control={form.control}
@@ -350,7 +341,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder="https://..."
+                    placeholder={t('urlPlaceholder')}
                     placeholderTextColor={Colors.textTertiary}
                     autoCapitalize="none"
                     keyboardType="url"
@@ -359,20 +350,14 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
                 )}
               />
               <TouchableOpacity style={styles.fetchBtn} onPress={fetchProduct} disabled={fetching}>
-                {fetching
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <Ionicons name="search" size={18} color="#fff" />
-                }
+                {fetching ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="search" size={18} color="#fff" />}
               </TouchableOpacity>
             </View>
-            {form.formState.errors.url && (
-              <Text style={styles.errorText}>{form.formState.errors.url.message}</Text>
-            )}
-            <Text style={styles.fieldHint}>Paste a link and tap 🔍 to auto-fill name & price</Text>
+            <Text style={styles.fieldHint}>{t('autoFillHint')}</Text>
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Item Name *</Text>
+            <Text style={styles.fieldLabel}>{t('itemName')} *</Text>
             <Controller
               control={form.control}
               name="name"
@@ -382,19 +367,16 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  placeholder="e.g. Whole milk"
+                  placeholder={t('itemNamePlaceholder')}
                   placeholderTextColor={Colors.textTertiary}
                   returnKeyType="next"
                 />
               )}
             />
-            {form.formState.errors.name && (
-              <Text style={styles.errorText}>{form.formState.errors.name.message}</Text>
-            )}
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Quantity / Price (optional)</Text>
+            <Text style={styles.fieldLabel}>{t('quantityPrice')}</Text>
             <Controller
               control={form.control}
               name="quantity"
@@ -404,7 +386,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  placeholder="e.g. 2L, 3 packs, €12.99"
+                  placeholder={t('quantityPlaceholder')}
                   placeholderTextColor={Colors.textTertiary}
                   returnKeyType="next"
                 />
@@ -413,7 +395,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Notes (optional)</Text>
+            <Text style={styles.fieldLabel}>{t('notes')}</Text>
             <Controller
               control={form.control}
               name="notes"
@@ -423,7 +405,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  placeholder="Brand preference, aisle, etc."
+                  placeholder={t('notesPlaceholder')}
                   placeholderTextColor={Colors.textTertiary}
                   multiline
                   numberOfLines={2}
