@@ -1,7 +1,7 @@
 // app/(app)/group/[id]/index.tsx
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Alert, FlatList, Linking, Modal, Platform, Share,
+  Alert, FlatList, Linking, Modal,
   StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
@@ -82,7 +82,7 @@ export default function GroupDetailScreen() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to add item';
       if (msg === 'OFFLINE') {
-        Toast.show({ type: 'info', text1: 'You\'re offline', text2: 'Item will sync when back online' });
+        Toast.show({ type: 'info', text1: "You're offline", text2: 'Item will sync when back online' });
       } else {
         Toast.show({ type: 'error', text1: 'Failed to add item' });
       }
@@ -122,17 +122,31 @@ export default function GroupDetailScreen() {
   };
 
   const handleDelete = (item: Item) => {
-    Alert.alert('Delete Item', `Remove "${item.name}" from the list?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteItem.mutate(item.id) },
-    ]);
+    Alert.alert(
+      'Delete Item',
+      `Remove "${item.name}" from the list?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteItem.mutate(item.id, {
+              onSuccess: () => Toast.show({ type: 'success', text1: 'Item deleted' }),
+              onError: () => Toast.show({ type: 'error', text1: 'Failed to delete item' }),
+            });
+          },
+        },
+      ]
+    );
   };
 
   const handleShare = async () => {
+    const { Share } = require('react-native');
     if (!group) return;
     try {
       await Share.share({
-        message: `Join my shopping list "${group.name}" on Shoply!\nInvite code: ${group.invite_code}\n\nDownload Shoply: https://shoply.app`,
+        message: `Join my shopping list "${group.name}" on Shoply!\nInvite code: ${group.invite_code}`,
         title: `Join ${group.name} on Shoply`,
       });
     } catch {}
@@ -273,7 +287,11 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete }: {
         <TouchableOpacity style={styles.itemActionBtn} onPress={onEdit}>
           <Ionicons name="pencil-outline" size={16} color={Colors.textTertiary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.itemActionBtn} onPress={onDelete}>
+        <TouchableOpacity
+          style={styles.itemActionBtn}
+          onPress={onDelete}
+          activeOpacity={0.6}
+        >
           <Ionicons name="trash-outline" size={16} color={Colors.danger} />
         </TouchableOpacity>
       </View>
@@ -320,7 +338,6 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>{title}</Text>
 
-          {/* URL veld */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Product URL (optional)</Text>
             <View style={styles.urlRow}>
@@ -354,7 +371,6 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
             <Text style={styles.fieldHint}>Paste a link and tap 🔍 to auto-fill name & price</Text>
           </View>
 
-          {/* Name */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Item Name *</Text>
             <Controller
@@ -377,7 +393,6 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
             )}
           </View>
 
-          {/* Quantity */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Quantity / Price (optional)</Text>
             <Controller
@@ -397,7 +412,6 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
             />
           </View>
 
-          {/* Notes */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Notes (optional)</Text>
             <Controller
@@ -468,7 +482,7 @@ const styles = StyleSheet.create({
   },
   urlChipText: { fontSize: Typography.xs, color: Colors.primary, maxWidth: 200 },
   itemActions: { flexDirection: 'row', gap: 4 },
-  itemActionBtn: { padding: 6, borderRadius: Radii.sm },
+  itemActionBtn: { padding: 8, borderRadius: Radii.sm },
   fab: {
     position: 'absolute', bottom: 24, right: 24, width: 60, height: 60,
     borderRadius: 30, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', ...Shadows.lg,

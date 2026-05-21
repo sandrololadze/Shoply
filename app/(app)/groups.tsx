@@ -12,8 +12,9 @@ import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { useGroups, useCreateGroup, useJoinGroup } from '../../src/hooks/useGroups';
 import { useAuthStore } from '../../src/store/authStore';
-import { Button, EmptyState, ErrorState, LoadingScreen } from '../../src/components/ui';
 import { useColors, Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';
+import { useLanguageStore } from '../../src/store/languageStore';
+import { Button, EmptyState, ErrorState, LoadingScreen } from '../../src/components/ui';
 import type { GroupWithMeta } from '../../src/types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -31,6 +32,7 @@ type JoinForm = z.infer<typeof joinSchema>;
 
 export default function GroupsScreen() {
   const C = useColors();
+  const { t } = useLanguageStore();
   const { data: groups, isLoading, isError, error, refetch, isFetching } = useGroups();
   const createGroup = useCreateGroup();
   const joinGroup = useJoinGroup();
@@ -66,13 +68,11 @@ export default function GroupsScreen() {
     }
   };
 
-  if (isLoading) return <LoadingScreen message="Loading your lists..." />;
+  if (isLoading) return <LoadingScreen message={t('loadingLists')} />;
   if (isError) return <ErrorState message={String(error)} onRetry={refetch} />;
 
   return (
     <View style={styles.container}>
-
-      {/* Gastbanner */}
       {isGuest && (
         <TouchableOpacity
           style={styles.guestBanner}
@@ -81,31 +81,29 @@ export default function GroupsScreen() {
         >
           <Ionicons name="person-add-outline" size={18} color={Colors.primary} />
           <View style={styles.guestBannerText}>
-            <Text style={styles.guestBannerTitle}>Je bent ingelogd als gast</Text>
-            <Text style={styles.guestBannerSub}>Maak een account aan om je data te bewaren →</Text>
+            <Text style={styles.guestBannerTitle}>{t('guestTitle')}</Text>
+            <Text style={styles.guestBannerSub}>{t('guestSub')}</Text>
           </View>
         </TouchableOpacity>
       )}
 
-      {/* Action buttons */}
       <View style={styles.actions}>
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: C.primarySurface, borderColor: C.primaryLight + '40' }]}
           onPress={() => setShowCreate(true)}
         >
           <Ionicons name="add-circle" size={20} color={C.primary} />
-          <Text style={[styles.actionBtnText, { color: C.primary }]}>New List</Text>
+          <Text style={[styles.actionBtnText, { color: C.primary }]}>{t('newList')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: C.primarySurface, borderColor: C.primaryLight + '40' }]}
           onPress={() => setShowJoin(true)}
         >
           <Ionicons name="enter-outline" size={20} color={C.primary} />
-          <Text style={[styles.actionBtnText, { color: C.primary }]}>Join List</Text>
+          <Text style={[styles.actionBtnText, { color: C.primary }]}>{t('joinList')}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Group list */}
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
@@ -120,24 +118,20 @@ export default function GroupsScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="🛒"
-            title="No lists yet"
-            subtitle="Create a new shopping list or join one with an invite code."
-            action={{ label: 'Create Your First List', onPress: () => setShowCreate(true) }}
+            title={t('noLists')}
+            subtitle={t('noListsSubtitle')}
+            action={{ label: t('createFirstList'), onPress: () => setShowCreate(true) }}
           />
         }
         renderItem={({ item }) => (
-          <GroupCard
-            group={item}
-            onPress={() => router.push(`/(app)/group/${item.id}/`)}
-          />
+          <GroupCard group={item} onPress={() => router.push(`/(app)/group/${item.id}/`)} />
         )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
-      {/* Create Group Modal */}
       <FormModal
         visible={showCreate}
-        title="New Shopping List"
+        title={t('newShoppingList')}
         onClose={() => { setShowCreate(false); createForm.reset(); }}
       >
         <Controller
@@ -145,13 +139,13 @@ export default function GroupsScreen() {
           name="name"
           render={({ field: { value, onChange, onBlur } }) => (
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>List Name</Text>
+              <Text style={styles.fieldLabel}>{t('listName')}</Text>
               <TextInput
                 style={styles.input}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                placeholder="e.g. Weekly Groceries"
+                placeholder={t('listNamePlaceholder')}
                 placeholderTextColor={Colors.textTertiary}
                 autoFocus
               />
@@ -166,13 +160,13 @@ export default function GroupsScreen() {
           name="description"
           render={({ field: { value, onChange, onBlur } }) => (
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Description (optional)</Text>
+              <Text style={styles.fieldLabel}>{t('descriptionOptional')}</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                placeholder="What's this list for?"
+                placeholder={t('descriptionPlaceholder')}
                 placeholderTextColor={Colors.textTertiary}
                 multiline
                 numberOfLines={3}
@@ -180,26 +174,21 @@ export default function GroupsScreen() {
             </View>
           )}
         />
-        <Button
-          label="Create List"
-          onPress={createForm.handleSubmit(handleCreate)}
-          loading={createGroup.isPending}
-        />
+        <Button label={t('createList')} onPress={createForm.handleSubmit(handleCreate)} loading={createGroup.isPending} />
       </FormModal>
 
-      {/* Join Group Modal */}
       <FormModal
         visible={showJoin}
-        title="Join a List"
+        title={t('joinAList')}
         onClose={() => { setShowJoin(false); joinForm.reset(); }}
       >
-        <Text style={styles.joinHint}>Ask your friend for the invite code from their list.</Text>
+        <Text style={styles.joinHint}>{t('joinHint')}</Text>
         <Controller
           control={joinForm.control}
           name="code"
           render={({ field: { value, onChange, onBlur } }) => (
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Invite Code</Text>
+              <Text style={styles.fieldLabel}>{t('inviteCode')}</Text>
               <TextInput
                 style={[styles.input, styles.codeInput]}
                 value={value}
@@ -217,11 +206,7 @@ export default function GroupsScreen() {
             </View>
           )}
         />
-        <Button
-          label="Join List"
-          onPress={joinForm.handleSubmit(handleJoin)}
-          loading={joinGroup.isPending}
-        />
+        <Button label={t('joinList')} onPress={joinForm.handleSubmit(handleJoin)} loading={joinGroup.isPending} />
       </FormModal>
     </View>
   );
@@ -285,15 +270,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: Colors.primaryLight + '40',
   },
   guestBannerText: { flex: 1 },
-  guestBannerTitle: {
-    fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.primary,
-  },
+  guestBannerTitle: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.primary },
   guestBannerSub: { fontSize: Typography.xs, color: Colors.primary, opacity: 0.8 },
   actions: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.base, paddingTop: Spacing.md },
   actionBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, borderRadius: Radii.md, paddingVertical: Spacing.md,
-    borderWidth: 1.5,
+    gap: Spacing.sm, borderRadius: Radii.md, paddingVertical: Spacing.md, borderWidth: 1.5,
   },
   actionBtnText: { fontSize: Typography.sm, fontWeight: Typography.semibold },
   list: { padding: Spacing.base, paddingTop: 0, flexGrow: 1 },
