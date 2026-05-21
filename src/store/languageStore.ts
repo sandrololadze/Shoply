@@ -100,6 +100,11 @@ interface LanguageState {
 
 export const useLanguageStore = create<LanguageState>((set, get) => ({
   languageCode: 'en',
-  setLanguage: (code) => set({ languageCode: code }),
+  setLanguage: (code) => {
+    set({ languageCode: code });
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  },
   t: (key) => TRANSLATIONS[get().languageCode]?.[key] ?? TRANSLATIONS['en'][key] ?? key,
 }));
