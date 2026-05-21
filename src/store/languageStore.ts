@@ -98,13 +98,20 @@ interface LanguageState {
   t: (key: string) => string;
 }
 
+const getSavedLanguage = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('shoply-language') ?? 'en';
+  }
+  return 'en';
+};
+
 export const useLanguageStore = create<LanguageState>((set, get) => ({
-  languageCode: 'en',
+  languageCode: getSavedLanguage(),
   setLanguage: (code) => {
-    set({ languageCode: code });
     if (typeof window !== 'undefined') {
-      window.location.reload();
+      localStorage.setItem('shoply-language', code);
     }
+    set({ languageCode: code });
   },
   t: (key) => TRANSLATIONS[get().languageCode]?.[key] ?? TRANSLATIONS['en'][key] ?? key,
 }));
