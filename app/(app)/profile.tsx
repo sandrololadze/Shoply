@@ -1,28 +1,22 @@
 // app/(app)/profile.tsx
-// User profile screen — edit name, manage notifications, sign out
-
 import React, { useState } from 'react';
 import {
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+  Modal, ScrollView, StyleSheet, Switch, Text,
+  TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
-import { useThemeStore, THEMES } from '../../src/store/themeStore';import { registerForPushNotifications } from '../../src/lib/notifications';
+import { useThemeStore, THEMES } from '../../src/store/themeStore';
+import { registerForPushNotifications } from '../../src/lib/notifications';
 import { Avatar, Button } from '../../src/components/ui';
-import { Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';
+import { useColors, Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';
 
 export default function ProfileScreen() {
   const { user, updateProfile, signOut, isLoading } = useAuthStore();
+  const { themeIndex, setTheme } = useThemeStore();
+  const C = useColors();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.profile.display_name ?? '');
   const [notificationsEnabled, setNotificationsEnabled] = useState(!!user?.profile.push_token);
@@ -56,43 +50,18 @@ export default function ProfileScreen() {
       await updateProfile({ push_token: null });
     }
   };
-const { themeIndex, setTheme } = useThemeStore();
-const handleSignOut = async () => {
+
+  const handleSignOut = async () => {
     await signOut();
     router.replace('/(auth)/login');
   };
 
   const MODAL_CONTENT = {
-    about: {
-      title: 'About Shoply',
-      text: `Shoply is a real-time shared shopping list app that makes grocery shopping easier for families, roommates, and friends.\n\nWith Shoply you can:\n• Create multiple shared shopping lists\n• Invite others with a simple invite code\n• See live updates when items are added or checked off\n• Track who added each item and when\n• Use it on any device — phone, tablet, or computer\n\nShoply was built with React Native, Expo, and Supabase.\n\nVersion 1.0.0\n© 2026 Shoply. All rights reserved.`,
-    },
-    privacy: {
-      title: 'Privacy Policy',
-      text: `Last updated: May 2026\n\nYour privacy is important to us.\n\n1. DATA WE COLLECT\nWe collect your email address, display name, and username when you create an account. We also store the shopping lists and items you create.\n\n2. HOW WE USE YOUR DATA\nYour data is used only to provide the Shoply service. We do not sell your personal information to third parties.\n\n3. DATA STORAGE\nYour data is stored securely on Supabase servers with encryption at rest and in transit.\n\n4. DATA SHARING\nYour display name is visible to other members of groups you join. Your email address is never shared.\n\n5. YOUR RIGHTS\nYou can delete your account and all associated data at any time by contacting us.\n\n6. COOKIES\nWe use cookies only for authentication purposes.\n\nContact: privacy@shoply.app`,
-    },
-    terms: {
-      title: 'Terms of Service',
-      text: `Last updated: May 2026\n\n1. ACCEPTANCE\nBy using Shoply, you agree to these terms.\n\n2. USE OF SERVICE\nShoply is provided for personal, non-commercial use. You may not use Shoply for illegal purposes or to harm others.\n\n3. YOUR ACCOUNT\nYou are responsible for keeping your account secure. Do not share your password.\n\n4. CONTENT\nYou own the content you create in Shoply. By using the service, you grant us a license to store and display your content to provide the service.\n\n5. PROHIBITED CONDUCT\nYou may not:\n• Use Shoply for spam or harassment\n• Attempt to hack or disrupt the service\n• Create fake accounts\n\n6. TERMINATION\nWe reserve the right to suspend accounts that violate these terms.\n\n7. DISCLAIMER\nShoply is provided "as is" without warranties of any kind.\n\n8. CONTACT\nterms@shoply.app`,
-    },
+    about: { title: 'About Shoply', text: 'Shoply is a real-time shared shopping list app.\n\nVersion 1.0.0\n© 2026 Shoply.' },
+    privacy: { title: 'Privacy Policy', text: 'Your privacy is important to us. We do not sell your data.' },
+    terms: { title: 'Terms of Service', text: 'By using Shoply, you agree to use it for personal, non-commercial purposes.' },
   };
-{/* Theme kleur kiezen */}
-<View style={styles.section}>
-  <Text style={styles.sectionTitle}>Appearance</Text>
-  <View style={styles.themeRow}>
-    {THEMES.map((theme, index) => (
-      <TouchableOpacity
-        key={theme.name}
-        onPress={() => setTheme(index)}
-        style={[
-          styles.themeCircle,
-          { backgroundColor: theme.primary },
-          themeIndex === index && styles.themeCircleActive,
-        ]}
-      />
-    ))}
-  </View>
-</View>
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Avatar + name */}
@@ -126,6 +95,24 @@ const handleSignOut = async () => {
         )}
       </View>
 
+      {/* Appearance */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Appearance</Text>
+        <View style={styles.themeRow}>
+          {THEMES.map((theme, index) => (
+            <TouchableOpacity
+              key={theme.name}
+              onPress={() => setTheme(index)}
+              style={[
+                styles.themeCircle,
+                { backgroundColor: theme.primary },
+                themeIndex === index && styles.themeCircleActive,
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+
       {/* Notifications */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notifications</Text>
@@ -137,7 +124,12 @@ const handleSignOut = async () => {
               <Text style={styles.settingHint}>Get notified when items are added</Text>
             </View>
           </View>
-          <Switch value={notificationsEnabled} onValueChange={handleToggleNotifications} trackColor={{ true: Colors.primary, false: Colors.border }} thumbColor="#FFFFFF" />
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={handleToggleNotifications}
+            trackColor={{ true: C.primary, false: Colors.border }}
+            thumbColor="#FFFFFF"
+          />
         </View>
       </View>
 
@@ -150,9 +142,10 @@ const handleSignOut = async () => {
       </View>
 
       <Text style={styles.version}>Shoply v1.0.0</Text>
- <TouchableOpacity onPress={handleSignOut} style={[styles.signOutBtn, {backgroundColor: '#EF4444', padding: 16, borderRadius: 12, alignItems: 'center'}]}>
-  <Text style={{color: 'white', fontWeight: 'bold', fontSize: 16}}>Sign Out</Text>
-</TouchableOpacity>
+
+      <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
+        <Text style={styles.signOutText}>Sign Out</Text>
+      </TouchableOpacity>
 
       {/* Info Modal */}
       <Modal visible={!!modalContent} transparent animationType="slide" onRequestClose={() => setModalContent(null)}>
@@ -200,21 +193,29 @@ const styles = StyleSheet.create({
   email: { fontSize: Typography.sm, color: Colors.textTertiary },
   editActions: { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'center' },
   halfBtn: { flex: 1 },
-  section: { backgroundColor: Colors.bgCard, borderRadius: Radii.lg, overflow: 'hidden', ...Shadows.sm },
+  section: {
+    backgroundColor: Colors.bgCard, borderRadius: Radii.lg,
+    overflow: 'hidden', padding: Spacing.base, gap: Spacing.md, ...Shadows.sm,
+  },
   sectionTitle: {
     fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textTertiary,
-    textTransform: 'uppercase', letterSpacing: 1, paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.border,
+    textTransform: 'uppercase', letterSpacing: 1,
   },
+  themeRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', paddingVertical: 4 },
+  themeCircle: { width: 36, height: 36, borderRadius: 18 },
+  themeCircleActive: { borderWidth: 3, borderColor: '#0F172A' },
   settingRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: Spacing.base, borderBottomWidth: 1, borderBottomColor: Colors.border,
+    paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   settingLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
   settingLabel: { fontSize: Typography.base, color: Colors.text, fontWeight: Typography.medium },
   settingHint: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
   version: { textAlign: 'center', fontSize: Typography.sm, color: Colors.textTertiary },
-  signOutBtn: { marginTop: Spacing.sm },
+  signOutBtn: {
+    backgroundColor: '#EF4444', padding: 16, borderRadius: Radii.lg, alignItems: 'center',
+  },
+  signOutText: { color: 'white', fontWeight: Typography.bold, fontSize: Typography.base },
   modalBackdrop: { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: Colors.bgCard, borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl,
@@ -222,15 +223,7 @@ const styles = StyleSheet.create({
   },
   modalHandle: { width: 36, height: 4, backgroundColor: Colors.border, borderRadius: Radii.full, alignSelf: 'center', marginBottom: Spacing.md },
   modalTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.text, marginBottom: Spacing.base },
- modalCloseBtn: { marginTop: Spacing.sm },
-  section: { gap: 8, marginBottom: 16 },
-  sectionTitle: { fontSize: 13, fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
-  themeRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  themeCircle: { width: 36, height: 36, borderRadius: 18 },
-  themeCircleActive: { borderWidth: 3, borderColor: '#0F172A' },
+  modalScroll: { flex: 1 },
+  modalText: { fontSize: Typography.base, color: Colors.textSecondary, lineHeight: 24 },
+  modalCloseBtn: { marginTop: Spacing.sm },
 });
-section: { gap: 8, marginBottom: 16 },
-sectionTitle: { fontSize: 13, fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
-themeRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-themeCircle: { width: 36, height: 36, borderRadius: 18 },
-themeCircleActive: { borderWidth: 3, borderColor: '#0F172A' },
