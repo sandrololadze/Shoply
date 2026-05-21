@@ -17,7 +17,7 @@ import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
-import { registerForPushNotifications } from '../../src/lib/notifications';
+import { useThemeStore, THEMES } from '../../src/store/themeStore';import { registerForPushNotifications } from '../../src/lib/notifications';
 import { Avatar, Button } from '../../src/components/ui';
 import { Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';
 
@@ -56,7 +56,7 @@ export default function ProfileScreen() {
       await updateProfile({ push_token: null });
     }
   };
-
+const { themeIndex, setTheme } = useThemeStore();
 const handleSignOut = async () => {
     await signOut();
     router.replace('/(auth)/login');
@@ -76,7 +76,23 @@ const handleSignOut = async () => {
       text: `Last updated: May 2026\n\n1. ACCEPTANCE\nBy using Shoply, you agree to these terms.\n\n2. USE OF SERVICE\nShoply is provided for personal, non-commercial use. You may not use Shoply for illegal purposes or to harm others.\n\n3. YOUR ACCOUNT\nYou are responsible for keeping your account secure. Do not share your password.\n\n4. CONTENT\nYou own the content you create in Shoply. By using the service, you grant us a license to store and display your content to provide the service.\n\n5. PROHIBITED CONDUCT\nYou may not:\n• Use Shoply for spam or harassment\n• Attempt to hack or disrupt the service\n• Create fake accounts\n\n6. TERMINATION\nWe reserve the right to suspend accounts that violate these terms.\n\n7. DISCLAIMER\nShoply is provided "as is" without warranties of any kind.\n\n8. CONTACT\nterms@shoply.app`,
     },
   };
-
+{/* Theme kleur kiezen */}
+<View style={styles.section}>
+  <Text style={styles.sectionTitle}>Appearance</Text>
+  <View style={styles.themeRow}>
+    {THEMES.map((theme, index) => (
+      <TouchableOpacity
+        key={theme.name}
+        onPress={() => setTheme(index)}
+        style={[
+          styles.themeCircle,
+          { backgroundColor: theme.primary },
+          themeIndex === index && styles.themeCircleActive,
+        ]}
+      />
+    ))}
+  </View>
+</View>
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Avatar + name */}
@@ -210,3 +226,8 @@ const styles = StyleSheet.create({
   modalText: { fontSize: Typography.sm, color: Colors.text, lineHeight: 22 },
   modalCloseBtn: { marginTop: Spacing.sm },
 });
+section: { gap: 8, marginBottom: 16 },
+sectionTitle: { fontSize: 13, fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
+themeRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+themeCircle: { width: 36, height: 36, borderRadius: 18 },
+themeCircleActive: { borderWidth: 3, borderColor: '#0F172A' },
