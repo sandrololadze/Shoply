@@ -224,9 +224,21 @@ export default function GroupDetailScreen() {
         onSubmit={handleAddItem}
         onClose={() => { setShowAddItem(false); addForm.reset(); }}
         isLoading={addItem.isPending}
+        labels={{
+          productUrl: t('productUrl'),
+          urlPlaceholder: t('urlPlaceholder'),
+          autoFillHint: t('autoFillHint'),
+          itemName: t('itemName'),
+          itemNamePlaceholder: t('itemNamePlaceholder'),
+          quantityPrice: t('quantityPrice'),
+          quantityPlaceholder: t('quantityPlaceholder'),
+          notes: t('notes'),
+          notesPlaceholder: t('notesPlaceholder'),
+        }}
+      />
       />
 
-      <ItemFormModal
+     <ItemFormModal
         visible={!!editingItem}
         title={t('editItem')}
         submitLabel={t('saveChanges')}
@@ -234,6 +246,18 @@ export default function GroupDetailScreen() {
         onSubmit={handleEditItem}
         onClose={() => setEditingItem(null)}
         isLoading={editItem.isPending}
+        labels={{
+          productUrl: t('productUrl'),
+          urlPlaceholder: t('urlPlaceholder'),
+          autoFillHint: t('autoFillHint'),
+          itemName: t('itemName'),
+          itemNamePlaceholder: t('itemNamePlaceholder'),
+          quantityPrice: t('quantityPrice'),
+          quantityPlaceholder: t('quantityPlaceholder'),
+          notes: t('notes'),
+          notesPlaceholder: t('notesPlaceholder'),
+        }}
+      />
       />
     </View>
   );
@@ -292,13 +316,14 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel }: 
   );
 }
 
-function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, isLoading }: {
+function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, isLoading, labels }: {
   visible: boolean; title: string; submitLabel: string;
   form: ReturnType<typeof useForm<ItemForm>>;
   onSubmit: (data: ItemForm) => void;
   onClose: () => void; isLoading: boolean;
+  labels: Record<string, string>;
 }) {
-  const { t } = useLanguageStore();
+  const t = (key: string) => labels[key] ?? key;
   const [fetching, setFetching] = useState(false);
 
   const fetchProduct = async () => {
