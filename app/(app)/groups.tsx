@@ -21,8 +21,7 @@ import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { useGroups, useCreateGroup, useJoinGroup } from '../../src/hooks/useGroups';
 import { Button, EmptyState, ErrorState, LoadingScreen } from '../../src/components/ui';
-import { Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';
-import type { GroupWithMeta } from '../../src/types';
+import { useColors, Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';import type { GroupWithMeta } from '../../src/types';
 import { formatDistanceToNow } from 'date-fns';
 
 // ─── Schemas ─────────────────────────────────────────────
@@ -39,6 +38,8 @@ type CreateForm = z.infer<typeof createSchema>;
 type JoinForm = z.infer<typeof joinSchema>;
 
 export default function GroupsScreen() {
+  const C = useColors();
+  const { data: groups, isLoading, isError, error, refetch, isFetching } = useGroups();
   const { data: groups, isLoading, isError, error, refetch, isFetching } = useGroups();
   const createGroup = useCreateGroup();
   const joinGroup = useJoinGroup();
@@ -81,14 +82,14 @@ export default function GroupsScreen() {
   return (
     <View style={styles.container}>
       {/* Action buttons */}
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => setShowCreate(true)}>
-          <Ionicons name="add-circle" size={20} color={Colors.primary} />
-          <Text style={styles.actionBtnText}>New List</Text>
+   <View style={styles.actions}>
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: C.primarySurface, borderColor: C.primaryLight + '40' }]} onPress={() => setShowCreate(true)}>
+          <Ionicons name="add-circle" size={20} color={C.primary} />
+          <Text style={[styles.actionBtnText, { color: C.primary }]}>New List</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => setShowJoin(true)}>
-          <Ionicons name="enter-outline" size={20} color={Colors.primary} />
-          <Text style={styles.actionBtnText}>Join List</Text>
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: C.primarySurface, borderColor: C.primaryLight + '40' }]} onPress={() => setShowJoin(true)}>
+          <Ionicons name="enter-outline" size={20} color={C.primary} />
+          <Text style={[styles.actionBtnText, { color: C.primary }]}>Join List</Text>
         </TouchableOpacity>
       </View>
 
@@ -101,8 +102,7 @@ export default function GroupsScreen() {
           <RefreshControl
             refreshing={isFetching && !isLoading}
             onRefresh={refetch}
-            tintColor={Colors.primary}
-          />
+tintColor={C.primary}          />
         }
         ListEmptyComponent={
           <EmptyState
