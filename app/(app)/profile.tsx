@@ -9,6 +9,7 @@ import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore, THEMES } from '../../src/store/themeStore';
+import { useLanguageStore, LANGUAGES } from '../../src/store/languageStore';
 import { registerForPushNotifications } from '../../src/lib/notifications';
 import { Avatar, Button } from '../../src/components/ui';
 import { useColors, Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';
@@ -16,6 +17,7 @@ import { useColors, Colors, Radii, Shadows, Spacing, Typography } from '../../sr
 export default function ProfileScreen() {
   const { user, updateProfile, signOut, isLoading } = useAuthStore();
   const { themeIndex, setTheme } = useThemeStore();
+  const { languageCode, setLanguage } = useLanguageStore();
   const C = useColors();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.profile.display_name ?? '');
@@ -94,7 +96,28 @@ export default function ProfileScreen() {
           <Button label="Edit Name" onPress={() => setEditing(true)} variant="secondary" icon={<Ionicons name="pencil-outline" size={16} color={Colors.text} />} />
         )}
       </View>
-
+{/* Language */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Language / Taal</Text>
+        <View style={styles.themeRow}>
+          {LANGUAGES.map((lang) => (
+            <TouchableOpacity
+              key={lang.code}
+              onPress={() => setLanguage(lang.code)}
+              style={[
+                styles.langBtn,
+                languageCode === lang.code && { backgroundColor: C.primary, borderColor: C.primary },
+              ]}
+            >
+              <Text style={styles.langFlag}>{lang.flag}</Text>
+              <Text style={[
+                styles.langLabel,
+                languageCode === lang.code && { color: '#FFFFFF' },
+              ]}>{lang.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
       {/* Appearance */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
@@ -204,7 +227,13 @@ const styles = StyleSheet.create({
   themeRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', paddingVertical: 4 },
   themeCircle: { width: 36, height: 36, borderRadius: 18 },
   themeCircleActive: { borderWidth: 3, borderColor: '#0F172A' },
-  settingRow: {
+  langBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radii.full,
+    borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.bgCard,
+  },
+  langFlag: { fontSize: 18 },
+  langLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.text },settingRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
