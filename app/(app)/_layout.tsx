@@ -2,9 +2,13 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text } from 'react-native';
-import { Colors, Typography } from '../../src/lib/design';
+import { useColors, Typography } from '../../src/lib/design';
+import { useLanguageStore } from '../../src/store/languageStore';
 
 export default function AppLayout() {
+  const Colors = useColors();
+  const { t } = useLanguageStore();
+
   return (
     <Tabs
       screenOptions={{
@@ -35,7 +39,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="groups"
         options={{
-          tabBarLabel: 'Lists',
+          tabBarLabel: t('lists'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="list" color={color} size={size} />
           ),
@@ -50,25 +54,16 @@ export default function AppLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarLabel: 'Profile',
+          title: t('profile'),
+          tabBarLabel: t('profile'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" color={color} size={size} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="group/[id]/index"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="group/[id]/activity"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="group/[id]/members"
-        options={{ href: null }}
-      />
+      <Tabs.Screen name="group/[id]/index" options={{ href: null }} />
+      <Tabs.Screen name="group/[id]/activity" options={{ href: null }} />
+      <Tabs.Screen name="group/[id]/members" options={{ href: null }} />
     </Tabs>
   );
 }
