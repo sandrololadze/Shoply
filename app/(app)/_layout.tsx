@@ -25,20 +25,12 @@ export default function AppLayout() {
         },
         headerStyle: { backgroundColor: Colors.bgCard },
         headerShadowVisible: false,
-        headerTitleStyle: {
-          fontWeight: Typography.bold,
-          fontSize: 18,
-          color: Colors.text,
-        },
-      }}
-    >
-<Tabs.Screen
-  name="groups"
-  options={{
-    tabBarLabel: 'Lists',
-    tabBarIcon: ({ color, size }) => (
-      <Ionicons name="list" color={color} size={size} />
-    ),
+        headerTitle: () => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+    <Text style={{ fontSize: 24 }}>🛒</Text>
+    <Text style={{ fontSize: 18, fontWeight: '700', color: '#1E293B' }}>Shoply</Text>
+  </View>
+),
     headerTitle: () => (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Svg width="32" height="32" viewBox="0 0 200 200">
