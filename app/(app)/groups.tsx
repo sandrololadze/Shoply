@@ -40,7 +40,6 @@ type JoinForm = z.infer<typeof joinSchema>;
 export default function GroupsScreen() {
   const C = useColors();
   const { data: groups, isLoading, isError, error, refetch, isFetching } = useGroups();
-  const { data: groups, isLoading, isError, error, refetch, isFetching } = useGroups();
   const createGroup = useCreateGroup();
   const joinGroup = useJoinGroup();
 
