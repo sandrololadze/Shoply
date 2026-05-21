@@ -106,11 +106,9 @@ const getSavedLanguage = () => {
 };
 
 export const useLanguageStore = create<LanguageState>((set, get) => ({
-  languageCode: getSavedLanguage(),
+  languageCode: (typeof window !== 'undefined' && localStorage.getItem('shoply-language')) || 'en',
   setLanguage: (code) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('shoply-language', code);
-    }
+    if (typeof window !== 'undefined') localStorage.setItem('shoply-language', code);
     set({ languageCode: code });
   },
   t: (key) => TRANSLATIONS[get().languageCode]?.[key] ?? TRANSLATIONS['en'][key] ?? key,
