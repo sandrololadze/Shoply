@@ -105,11 +105,21 @@ const getSavedLanguage = () => {
   return 'en';
 };
 
+const getInitialLanguage = () => {
+  if (typeof window === 'undefined') return 'en';
+  return localStorage.getItem('shoply-language') || 'en';
+};
+
 export const useLanguageStore = create<LanguageState>((set, get) => ({
-  languageCode: (typeof window !== 'undefined' && localStorage.getItem('shoply-language')) || 'en',
+  languageCode: getInitialLanguage(),
   setLanguage: (code) => {
     if (typeof window !== 'undefined') localStorage.setItem('shoply-language', code);
     set({ languageCode: code });
   },
-  t: (key) => TRANSLATIONS[get().languageCode]?.[key] ?? TRANSLATIONS['en'][key] ?? key,
+  t: (key) => {
+    const lang = get().languageCode;
+    const translation = TRANSLATIONS[lang]?.[key];
+    if (translation) return translation;
+    return TRANSLATIONS['en'][key] ?? key;
+  },
 }));
