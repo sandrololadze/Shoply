@@ -39,7 +39,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="groups"
         options={{
-          tabBarLabel: t('lists'),
+          tabBarLabel: () => <Text style={{ fontSize: 11, fontWeight: '600', color: Colors.primary }}>{t('lists')}</Text>,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="list" color={color} size={size} />
           ),
@@ -55,7 +55,7 @@ export default function AppLayout() {
         name="profile"
         options={{
           title: t('profile'),
-          tabBarLabel: t('profile'),
+          tabBarLabel: () => <Text style={{ fontSize: 11, fontWeight: '600', color: Colors.textTertiary }}>{t('profile')}</Text>,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" color={color} size={size} />
           ),
