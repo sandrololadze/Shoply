@@ -53,6 +53,7 @@ export interface Item {
   name: string;
   quantity: string | null;
   notes: string | null;
+  url: string | null;
   status: ItemStatus;
   added_by: string;
   completed_by: string | null;
@@ -115,12 +116,14 @@ export interface CreateItemInput {
   name: string;
   quantity?: string;
   notes?: string;
+  url?: string;
 }
 
 export interface UpdateItemInput {
   name: string;
   quantity?: string;
   notes?: string;
+  url?: string;
   version: number;
 }
 

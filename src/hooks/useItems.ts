@@ -180,6 +180,7 @@ export const useAddItem = (groupId: string) => {
           name: input.name,
           quantity: input.quantity ?? null,
           notes: input.notes ?? null,
+          url: input.url ?? null,
           added_by: user.id,
           status: 'active',
         })
@@ -216,6 +217,7 @@ export const useAddItem = (groupId: string) => {
         name: input.name,
         quantity: input.quantity ?? null,
         notes: input.notes ?? null,
+        url: input.url ?? null,
         status: 'active',
         added_by: user.id,
         added_by_profile: user.profile,
@@ -344,6 +346,7 @@ export const useEditItem = (groupId: string) => {
         p_name: updates.name,
         p_quantity: updates.quantity ?? null,
         p_notes: updates.notes ?? null,
+        p_url: updates.url ?? null,
         p_expected_version: updates.version,
       });
 
@@ -379,7 +382,7 @@ export const useEditItem = (groupId: string) => {
       queryClient.setQueryData<Item[]>(itemKeys.list(groupId), (old) =>
         (old ?? []).map((item) =>
           item.id === itemId
-            ? { ...item, name: updates.name, quantity: updates.quantity ?? null, notes: updates.notes ?? null }
+            ? { ...item, name: updates.name, quantity: updates.quantity ?? null, notes: updates.notes ?? null, url: updates.url ?? null }
             : item
         )
       );
