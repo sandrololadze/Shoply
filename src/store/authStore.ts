@@ -1,6 +1,4 @@
 // src/store/authStore.ts
-// Zustand store for auth state — single source of truth for current user
-
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { AuthUser, Profile, SignInInput, SignUpInput } from '../types';
@@ -10,10 +8,10 @@ interface AuthState {
   isLoading: boolean;
   isInitialized: boolean;
 
-  // Actions
   initialize: () => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
   signIn: (input: SignInInput) => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   updatePushToken: (token: string) => Promise<void>;
@@ -24,26 +22,46 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   isInitialized: false,
 
-  // ─── Initialize: restore session on app start ──────────────
   initialize: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        const isAnon = session.user.is_anonymous === true;
 
-        if (profile) {
+        if (isAnon) {
           set({
             user: {
               id: session.user.id,
-              email: session.user.email!,
-              profile,
+              email: '',
+              is_anonymous: true,
+              profile: {
+                id: session.user.id,
+                username: 'guest',
+                display_name: 'Guest',
+                avatar_url: null,
+                push_token: null,
+                created_at: session.user.created_at,
+              },
             },
           });
+        } else {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            set({
+              user: {
+                id: session.user.id,
+                email: session.user.email!,
+                is_anonymous: false,
+                profile,
+              },
+            });
+          }
         }
       }
     } catch (error) {
@@ -52,81 +70,126 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isInitialized: true });
     }
 
-    // Listen for auth state changes (token refresh, sign out from another device)
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        const isAnon = session.user.is_anonymous === true;
 
-        if (profile) {
+        if (isAnon) {
           set({
             user: {
               id: session.user.id,
-              email: session.user.email!,
-              profile,
+              email: '',
+              is_anonymous: true,
+              profile: {
+                id: session.user.id,
+                username: 'guest',
+                display_name: 'Guest',
+                avatar_url: null,
+                push_token: null,
+                created_at: session.user.created_at,
+              },
             },
           });
+        } else {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            set({
+              user: {
+                id: session.user.id,
+                email: session.user.email!,
+                is_anonymous: false,
+                profile,
+              },
+            });
+          }
         }
       } else if (event === 'SIGNED_OUT') {
         set({ user: null });
-      } else if (event === 'TOKEN_REFRESHED') {
-        // Session silently refreshed — no action needed
-        console.log('Token refreshed silently');
       }
     });
   },
 
-  // ─── Sign Up ─────────────────────────────────────────────
   signUp: async ({ email, password, username, display_name }) => {
     set({ isLoading: true });
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { username, display_name }, // Passed to handle_new_user trigger
-        },
-      });
+      const currentUser = get().user;
+      let data, error;
 
-      if (error) throw error;
-      if (!data.user) throw new Error('Sign up failed — no user returned');
+      if (currentUser?.is_anonymous) {
+        // Koppel het anonieme account aan een echt account
+        ({ data, error } = await supabase.auth.updateUser({
+          email,
+          password,
+          data: { username, display_name },
+        }));
+        if (error) throw error;
 
-      // Profile is created by the DB trigger (handle_new_user)
-      // Wait briefly for trigger to complete, then fetch profile
-      await new Promise(resolve => setTimeout(resolve, 500));
+        // Maak alsnog een profiel aan
+        await supabase.from('profiles').upsert({
+          id: currentUser.id,
+          username,
+          display_name,
+        });
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (profileError) throw profileError;
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
 
-      set({
-        user: {
-          id: data.user.id,
-          email: data.user.email!,
-          profile,
-        },
-      });
+        set({
+          user: {
+            id: currentUser.id,
+            email,
+            is_anonymous: false,
+            profile: profile!,
+          },
+        });
+      } else {
+        ({ data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { username, display_name } },
+        }));
+
+        if (error) throw error;
+        if (!data.user) throw new Error('Sign up failed');
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        set({
+          user: {
+            id: data.user.id,
+            email: data.user.email!,
+            is_anonymous: false,
+            profile,
+          },
+        });
+      }
     } finally {
       set({ isLoading: false });
     }
   },
 
-  // ─── Sign In ─────────────────────────────────────────────
   signIn: async ({ email, password }) => {
     set({ isLoading: true });
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
       const { data: profile, error: profileError } = await supabase
@@ -141,6 +204,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: {
           id: data.user.id,
           email: data.user.email!,
+          is_anonymous: false,
           profile,
         },
       });
@@ -149,7 +213,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // ─── Sign Out ────────────────────────────────────────────
+  signInAsGuest: async () => {
+    set({ isLoading: true });
+    try {
+      console.log('Guest sign in starting...');
+      const { data, error } = await supabase.auth.signInAnonymously();
+      console.log('Guest result:', { data, error });
+      if (error) throw error;
+
+      set({
+        user: {
+          id: data.user!.id,
+          email: '',
+          is_anonymous: true,
+          profile: {
+            id: data.user!.id,
+            username: 'guest',
+            display_name: 'Guest',
+            avatar_url: null,
+            push_token: null,
+            created_at: data.user!.created_at,
+          },
+        },
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   signOut: async () => {
     set({ isLoading: true });
     try {
@@ -161,7 +252,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // ─── Update Profile ───────────────────────────────────────
   updateProfile: async (updates) => {
     const { user } = get();
     if (!user) throw new Error('Not authenticated');
@@ -177,7 +267,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: { ...user, profile: data } });
   },
 
-  // ─── Store push notification token ──────────────────────
   updatePushToken: async (token) => {
     const { user } = get();
     if (!user) return;
