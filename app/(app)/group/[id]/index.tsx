@@ -24,6 +24,22 @@ import { detectCategory } from '../../../../src/lib/categories';
 import type { Item } from '../../../../src/types';
 import { formatDistanceToNow } from 'date-fns';
 
+// Extracts a numeric price from strings like "€2.50", "2,99", "3x €1.20", "€1.50 x2"
+function parsePrice(quantity?: string | null): number {
+  if (!quantity) return 0;
+  // Handle "3x €1.20" or "€1.20 x3" patterns
+  const multiMatch = quantity.match(/(\d+)\s*[xX×]\s*[€$£]?\s*(\d+[.,]\d{1,2})|[€$£]?\s*(\d+[.,]\d{1,2})\s*[xX×]\s*(\d+)/);
+  if (multiMatch) {
+    const count = parseFloat(multiMatch[1] || multiMatch[4]);
+    const price = parseFloat((multiMatch[2] || multiMatch[3]).replace(',', '.'));
+    return count * price;
+  }
+  // Handle plain price like "€2.50" or "2,99"
+  const match = quantity.match(/[€$£]?\s*(\d+[.,]\d{1,2})/);
+  if (match) return parseFloat(match[1].replace(',', '.'));
+  return 0;
+}
+
 const itemSchema = z.object({
   name: z.string().min(1, 'Item name required').max(200),
   quantity: z.string().max(50).optional(),
@@ -157,6 +173,12 @@ export default function GroupDetailScreen() {
   const activeItems = items?.filter((i) => i.status === 'active') ?? [];
   const completedItems = items?.filter((i) => i.status === 'completed') ?? [];
 
+  const allPricedItems = [...activeItems, ...completedItems].filter((i) => parsePrice(i.quantity) > 0);
+  const totalActive = activeItems.reduce((sum, i) => sum + parsePrice(i.quantity), 0);
+  const totalCompleted = completedItems.reduce((sum, i) => sum + parsePrice(i.quantity), 0);
+  const totalAll = totalActive + totalCompleted;
+  const hasPrices = allPricedItems.length > 0;
+
   const itemLabels = {
     productUrl: t('productUrl'), urlPlaceholder: t('urlPlaceholder'), autoFillHint: t('autoFillHint'),
     itemName: t('itemName'), itemNamePlaceholder: t('itemNamePlaceholder'),
@@ -213,6 +235,25 @@ export default function GroupDetailScreen() {
         }}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
       />
+
+      {hasPrices && (
+        <View style={{ position: 'absolute', bottom: 110, left: Spacing.base, right: 90, backgroundColor: C.bgCard, borderRadius: Radii.lg, padding: Spacing.md, ...Shadows.md, borderWidth: 1, borderColor: C.border }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <Text style={{ fontSize: Typography.xs, fontWeight: Typography.semibold, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: 1 }}>💰 Total</Text>
+            <Text style={{ fontSize: Typography.lg, fontWeight: Typography.bold, color: C.primary }}>€{totalAll.toFixed(2)}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: Spacing.base }}>
+            <View style={{ flex: 1, backgroundColor: C.bgElevated, borderRadius: Radii.md, padding: Spacing.sm, alignItems: 'center' }}>
+              <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>Still needed</Text>
+              <Text style={{ fontSize: Typography.sm, fontWeight: Typography.bold, color: C.warning }}>€{totalActive.toFixed(2)}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: C.bgElevated, borderRadius: Radii.md, padding: Spacing.sm, alignItems: 'center' }}>
+              <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>In basket</Text>
+              <Text style={{ fontSize: Typography.sm, fontWeight: Typography.bold, color: C.success }}>€{totalCompleted.toFixed(2)}</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       <View style={{ position: 'absolute', bottom: 24, right: 24, gap: 12, alignItems: 'center' }}>
         <TouchableOpacity
