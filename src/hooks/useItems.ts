@@ -167,9 +167,10 @@ export const useAddItem = (groupId: string) => {
           quantity: input.quantity ?? null,
           notes: input.notes ?? null,
           url: input.url ?? null,
-          added_by: user.id,
+         added_by: user.id,
           status: 'active',
           category: input.category ?? detectCategory(input.name).id,
+          price: input.price ?? null,
         })
         .select('*, added_by_profile:profiles!items_added_by_fkey(*)')
         .single();
@@ -206,6 +207,7 @@ export const useAddItem = (groupId: string) => {
         completed_at: null,
         sort_order: (previousItems?.length ?? 0) * 10,
 category: input.category ?? detectCategory(input.name).id,
+        price: input.price ?? null,
         version: 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -317,6 +319,11 @@ export const useEditItem = (groupId: string) => {
         p_url: updates.url ?? null,
         p_expected_version: updates.version,
       });
+
+      // Also update price separately since rpc doesn't handle it
+      if (success) {
+        await supabase.from('items').update({ price: updates.price ?? null }).eq('id', itemId);
+      }
 
       if (error) throw error;
 

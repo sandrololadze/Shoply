@@ -23,7 +23,8 @@ export interface Profile {
   display_name: string;
   avatar_url: string | null;
 category?: string | null;
-  push_token: string | null;
+  price?: number | null;
+push_token: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -114,6 +115,7 @@ export interface CreateGroupInput {
 }
 
 export interface CreateItemInput {
+price?: number | null;
   name: string;
   quantity?: string;
   notes?: string;
@@ -121,6 +123,7 @@ export interface CreateItemInput {
 }
 
 export interface UpdateItemInput {
+price?: number | null;
   name: string;
   quantity?: string;
   notes?: string;

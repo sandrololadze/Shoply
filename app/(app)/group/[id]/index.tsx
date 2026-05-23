@@ -43,6 +43,7 @@ function parsePrice(quantity?: string | null): number {
 const itemSchema = z.object({
   name: z.string().min(1, 'Item name required').max(200),
   quantity: z.string().max(50).optional(),
+  price: z.string().max(20).optional(),
   notes: z.string().max(500).optional(),
   url: z.string().url('Enter a valid URL').or(z.literal('')).optional(),
 });
@@ -98,7 +99,7 @@ export default function GroupDetailScreen() {
 
   const handleAddItem = async (data: ItemForm) => {
     try {
-      await addItem.mutateAsync({ name: data.name, quantity: data.quantity, notes: data.notes, url: data.url || undefined });
+      await addItem.mutateAsync({ name: data.name, quantity: data.quantity, price: data.price ? parseFloat(data.price.replace(',', '.')) : null, notes: data.notes, url: data.url || undefined });
       setShowAddItem(false);
       addForm.reset();
     } catch (err: unknown) {
@@ -113,13 +114,13 @@ export default function GroupDetailScreen() {
 
   const openEdit = (item: Item) => {
     setEditingItem(item);
-    editForm.reset({ name: item.name, quantity: item.quantity ?? '', notes: item.notes ?? '', url: item.url ?? '' });
+    editForm.reset({ name: item.name, quantity: item.quantity ?? '', price: item.price != null ? String(item.price) : '', notes: item.notes ?? '', url: item.url ?? '' });
   };
 
   const handleEditItem = async (data: ItemForm) => {
     if (!editingItem) return;
     try {
-      await editItem.mutateAsync({ itemId: editingItem.id, updates: { ...data, url: data.url || undefined, version: editingItem.version } });
+      await editItem.mutateAsync({ itemId: editingItem.id, updates: { ...data, price: data.price ? parseFloat(data.price.replace(',', '.')) : null, url: data.url || undefined, version: editingItem.version } });
       setEditingItem(null);
       Toast.show({ type: 'success', text1: 'Item updated' });
     } catch (err: unknown) {
@@ -173,11 +174,10 @@ export default function GroupDetailScreen() {
   const activeItems = items?.filter((i) => i.status === 'active') ?? [];
   const completedItems = items?.filter((i) => i.status === 'completed') ?? [];
 
-  const allPricedItems = [...activeItems, ...completedItems].filter((i) => parsePrice(i.quantity) > 0);
-  const totalActive = activeItems.reduce((sum, i) => sum + parsePrice(i.quantity), 0);
-  const totalCompleted = completedItems.reduce((sum, i) => sum + parsePrice(i.quantity), 0);
+  const totalActive = activeItems.reduce((sum, i) => sum + (i.price ?? 0), 0);
+  const totalCompleted = completedItems.reduce((sum, i) => sum + (i.price ?? 0), 0);
   const totalAll = totalActive + totalCompleted;
-  const hasPrices = allPricedItems.length > 0;
+  const hasPrices = [...activeItems, ...completedItems].some((i) => i.price != null && i.price > 0);
 
   const itemLabels = {
     productUrl: t('productUrl'), urlPlaceholder: t('urlPlaceholder'), autoFillHint: t('autoFillHint'),
@@ -317,6 +317,9 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel, C 
           {item.quantity && (
             <Text style={{ fontSize: Typography.xs, color: C.textSecondary, backgroundColor: C.bgElevated, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radii.full }}>📦 {item.quantity}</Text>
           )}
+          {item.price != null && (
+            <Text style={{ fontSize: Typography.xs, color: C.success, backgroundColor: C.successLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radii.full, fontWeight: Typography.semibold }}>€{Number(item.price).toFixed(2)}</Text>
+          )}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <Avatar userId={item.added_by} displayName={addedByName} size={16} />
             <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>
@@ -416,13 +419,20 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
             )}
           </View>
 
-          <View style={{ gap: Spacing.xs }}>
-            <Text style={{ fontSize: Typography.sm, fontWeight: Typography.semibold, color: C.text }}>{t('quantityPrice')}</Text>
-            <Controller control={form.control} name="quantity" render={({ field: { value, onChange, onBlur } }) => (
-              <TextInput style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: Radii.md, paddingHorizontal: Spacing.base, paddingVertical: 13, fontSize: Typography.base, color: C.text, backgroundColor: C.bg }} value={value} onChangeText={onChange} onBlur={onBlur} placeholder={t('quantityPlaceholder')} placeholderTextColor={C.textTertiary} />
-            )} />
+          <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+            <View style={{ flex: 1, gap: Spacing.xs }}>
+              <Text style={{ fontSize: Typography.sm, fontWeight: Typography.semibold, color: C.text }}>{t('quantityPrice')}</Text>
+              <Controller control={form.control} name="quantity" render={({ field: { value, onChange, onBlur } }) => (
+                <TextInput style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: Radii.md, paddingHorizontal: Spacing.base, paddingVertical: 13, fontSize: Typography.base, color: C.text, backgroundColor: C.bg }} value={value} onChangeText={onChange} onBlur={onBlur} placeholder="2 stuks" placeholderTextColor={C.textTertiary} />
+              )} />
+            </View>
+            <View style={{ flex: 1, gap: Spacing.xs }}>
+              <Text style={{ fontSize: Typography.sm, fontWeight: Typography.semibold, color: C.text }}>Prijs (€)</Text>
+              <Controller control={form.control} name="price" render={({ field: { value, onChange, onBlur } }) => (
+                <TextInput style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: Radii.md, paddingHorizontal: Spacing.base, paddingVertical: 13, fontSize: Typography.base, color: C.text, backgroundColor: C.bg }} value={value} onChangeText={onChange} onBlur={onBlur} placeholder="0.00" placeholderTextColor={C.textTertiary} keyboardType="decimal-pad" />
+              )} />
+            </View>
           </View>
-
           <View style={{ gap: Spacing.xs }}>
             <Text style={{ fontSize: Typography.sm, fontWeight: Typography.semibold, color: C.text }}>{t('notes')}</Text>
             <Controller control={form.control} name="notes" render={({ field: { value, onChange, onBlur } }) => (
