@@ -2,47 +2,57 @@
 import { Platform } from 'react-native';
 import { useThemeStore } from '../store/themeStore';
 
-export const THEMES = [
-  { name: 'Indigo', primary: '#6366F1', primaryLight: '#818CF8', primaryDark: '#4F46E5', primarySurface: '#EEF2FF' },
-  { name: 'Emerald', primary: '#10B981', primaryLight: '#34D399', primaryDark: '#059669', primarySurface: '#ECFDF5' },
-  { name: 'Blue', primary: '#3B82F6', primaryLight: '#60A5FA', primaryDark: '#2563EB', primarySurface: '#EFF6FF' },
-  { name: 'Violet', primary: '#8B5CF6', primaryLight: '#A78BFA', primaryDark: '#7C3AED', primarySurface: '#F5F3FF' },
-  { name: 'Pink', primary: '#EC4899', primaryLight: '#F472B6', primaryDark: '#DB2777', primarySurface: '#FDF2F8' },
-  { name: 'Orange', primary: '#F97316', primaryLight: '#FB923C', primaryDark: '#EA580C', primarySurface: '#FFF7ED' },
-];
-
 export function useColors() {
-  const { themeIndex } = useThemeStore();
+  const { themeIndex, darkMode } = useThemeStore();
+  const THEMES = [
+    { primary: '#6366F1', primaryLight: '#818CF8', primaryDark: '#4F46E5', primarySurface: darkMode ? '#1e1b4b' : '#EEF2FF' },
+    { primary: '#10B981', primaryLight: '#34D399', primaryDark: '#059669', primarySurface: darkMode ? '#052e16' : '#ECFDF5' },
+    { primary: '#3B82F6', primaryLight: '#60A5FA', primaryDark: '#2563EB', primarySurface: darkMode ? '#1e3a5f' : '#EFF6FF' },
+    { primary: '#8B5CF6', primaryLight: '#A78BFA', primaryDark: '#7C3AED', primarySurface: darkMode ? '#2e1065' : '#F5F3FF' },
+    { primary: '#EC4899', primaryLight: '#F472B6', primaryDark: '#DB2777', primarySurface: darkMode ? '#4a0025' : '#FDF2F8' },
+    { primary: '#F97316', primaryLight: '#FB923C', primaryDark: '#EA580C', primarySurface: darkMode ? '#431407' : '#FFF7ED' },
+  ];
   const theme = THEMES[themeIndex] || THEMES[0];
+
   return {
     ...theme,
-    success: '#10B981', successLight: '#D1FAE5',
-    warning: '#F59E0B', warningLight: '#FEF3C7',
-    danger: '#EF4444', dangerLight: '#FEE2E2',
-    bg: '#F8FAFC', bgCard: '#FFFFFF', bgElevated: '#F1F5F9',
-    border: '#E2E8F0', borderDark: '#CBD5E1',
-    text: '#0F172A', textSecondary: '#64748B', textTertiary: '#94A3B8', textInverse: '#FFFFFF',
-    overlay: 'rgba(15, 23, 42, 0.5)', overlayLight: 'rgba(15, 23, 42, 0.08)',
-    admin: '#7C3AED', adminSurface: '#EDE9FE',
-    member: '#0284C7', memberSurface: '#E0F2FE',
-    completed: '#10B981', completedSurface: '#ECFDF5',
+    success: '#10B981',
+    successLight: darkMode ? '#052e16' : '#D1FAE5',
+    warning: '#F59E0B',
+    warningLight: darkMode ? '#451a03' : '#FEF3C7',
+    danger: '#EF4444',
+    dangerLight: darkMode ? '#450a0a' : '#FEE2E2',
+    bg: darkMode ? '#0F172A' : '#F8FAFC',
+    bgCard: darkMode ? '#1E293B' : '#FFFFFF',
+    bgElevated: darkMode ? '#334155' : '#F1F5F9',
+    border: darkMode ? '#334155' : '#E2E8F0',
+    borderDark: darkMode ? '#475569' : '#CBD5E1',
+    text: darkMode ? '#F1F5F9' : '#0F172A',
+    textSecondary: darkMode ? '#94A3B8' : '#64748B',
+    textTertiary: darkMode ? '#64748B' : '#94A3B8',
+    textInverse: darkMode ? '#0F172A' : '#FFFFFF',
+    overlay: 'rgba(0, 0, 0, 0.7)',
+    overlayLight: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.08)',
+    admin: '#7C3AED',
+    adminSurface: darkMode ? '#2e1065' : '#EDE9FE',
+    member: '#0284C7',
+    memberSurface: darkMode ? '#0c2a4a' : '#E0F2FE',
+    completed: '#10B981',
+    completedSurface: darkMode ? '#052e16' : '#ECFDF5',
     active: theme.primary,
+    isDark: darkMode,
   };
 }
 
 export const Colors = {
   primary: '#6366F1', primaryLight: '#818CF8', primaryDark: '#4F46E5', primarySurface: '#EEF2FF',
-  success: '#10B981', successLight: '#D1FAE5',
-  warning: '#F59E0B', warningLight: '#FEF3C7',
-  danger: '#EF4444', dangerLight: '#FEE2E2',
-  bg: '#F8FAFC', bgCard: '#FFFFFF', bgElevated: '#F1F5F9',
-  border: '#E2E8F0', borderDark: '#CBD5E1',
-  text: '#0F172A', textSecondary: '#64748B', textTertiary: '#94A3B8', textInverse: '#FFFFFF',
+  success: '#10B981', successLight: '#D1FAE5', warning: '#F59E0B', warningLight: '#FEF3C7',
+  danger: '#EF4444', dangerLight: '#FEE2E2', bg: '#F8FAFC', bgCard: '#FFFFFF',
+  bgElevated: '#F1F5F9', border: '#E2E8F0', borderDark: '#CBD5E1', text: '#0F172A',
+  textSecondary: '#64748B', textTertiary: '#94A3B8', textInverse: '#FFFFFF',
   overlay: 'rgba(15, 23, 42, 0.5)', overlayLight: 'rgba(15, 23, 42, 0.08)',
-  admin: '#7C3AED', adminSurface: '#EDE9FE',
-  member: '#0284C7', memberSurface: '#E0F2FE',
-  completed: '#10B981', completedSurface: '#ECFDF5',
-  active: '#6366F1',
+  admin: '#7C3AED', adminSurface: '#EDE9FE', member: '#0284C7', memberSurface: '#E0F2FE',
+  completed: '#10B981', completedSurface: '#ECFDF5', active: '#6366F1',
 };
 
 export const Typography = {
@@ -78,9 +88,7 @@ export const Shadows = {
 const AVATAR_COLORS = ['#6366F1','#8B5CF6','#EC4899','#EF4444','#F59E0B','#10B981','#06B6D4','#3B82F6'];
 export function getAvatarColor(userId: string): string {
   let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-  }
+  for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 

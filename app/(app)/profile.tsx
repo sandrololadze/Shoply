@@ -16,7 +16,7 @@ import { useColors, Colors, Radii, Shadows, Spacing, Typography } from '../../sr
 
 export default function ProfileScreen() {
   const { user, updateProfile, signOut, isLoading } = useAuthStore();
-  const { themeIndex, setTheme } = useThemeStore();
+  const { themeIndex, setTheme, darkMode, toggleDarkMode } = useThemeStore();
   const { languageCode, setLanguage } = useLanguageStore();
   const C = useColors();
   const [editing, setEditing] = useState(false);
@@ -64,14 +64,42 @@ export default function ProfileScreen() {
     terms: { title: 'Terms of Service', text: 'By using Shoply, you agree to use it for personal, non-commercial purposes.' },
   };
 
+  const dynamicStyles = {
+    container: { flex: 1, backgroundColor: C.bg },
+    section: { backgroundColor: C.bgCard, borderRadius: Radii.lg, overflow: 'hidden' as const, ...Shadows.sm },
+    sectionTitle: {
+      fontSize: Typography.xs, fontWeight: Typography.semibold, color: C.textTertiary,
+      textTransform: 'uppercase' as const, letterSpacing: 1, paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: C.border,
+    },
+    settingRow: {
+      flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const,
+      padding: Spacing.base, borderBottomWidth: 1, borderBottomColor: C.border,
+    },
+    settingLabel: { fontSize: Typography.base, color: C.text, fontWeight: Typography.medium },
+    settingHint: { fontSize: Typography.xs, color: C.textTertiary, marginTop: 2 },
+    displayName: { fontSize: Typography.xl, fontWeight: Typography.bold, color: C.text },
+    username: { fontSize: Typography.base, color: C.textSecondary },
+    email: { fontSize: Typography.sm, color: C.textTertiary },
+    version: { textAlign: 'center' as const, fontSize: Typography.sm, color: C.textTertiary },
+    modalBackdrop: { flex: 1, backgroundColor: C.overlay, justifyContent: 'flex-end' as const },
+    modalContent: {
+      backgroundColor: C.bgCard, borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl,
+      padding: Spacing.xl, paddingBottom: Spacing['3xl'], maxHeight: '80%' as const,
+    },
+    modalTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: C.text, marginBottom: Spacing.base },
+    modalText: { fontSize: Typography.sm, color: C.text, lineHeight: 22 },
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={dynamicStyles.container} contentContainerStyle={styles.content}>
+
       {/* Avatar + name */}
       <View style={styles.avatarSection}>
         <Avatar userId={user.id} displayName={user.profile.display_name} size={80} />
         {editing ? (
           <TextInput
-            style={styles.nameInput}
+            style={[styles.nameInput, { borderBottomColor: C.primary, color: C.text }]}
             value={displayName}
             onChangeText={setDisplayName}
             autoFocus
@@ -79,10 +107,10 @@ export default function ProfileScreen() {
             onSubmitEditing={handleSave}
           />
         ) : (
-          <Text style={styles.displayName}>{user.profile.display_name}</Text>
+          <Text style={dynamicStyles.displayName}>{user.profile.display_name}</Text>
         )}
-        <Text style={styles.username}>@{user.profile.username}</Text>
-        <Text style={styles.email}>{user.email}</Text>
+        <Text style={dynamicStyles.username}>@{user.profile.username}</Text>
+        <Text style={dynamicStyles.email}>{user.email}</Text>
       </View>
 
       {/* Edit actions */}
@@ -93,93 +121,114 @@ export default function ProfileScreen() {
             <Button label="Cancel" onPress={() => { setEditing(false); setDisplayName(user.profile.display_name); }} variant="secondary" style={styles.halfBtn} />
           </>
         ) : (
-          <Button label="Edit Name" onPress={() => setEditing(true)} variant="secondary" icon={<Ionicons name="pencil-outline" size={16} color={Colors.text} />} />
+          <Button label="Edit Name" onPress={() => setEditing(true)} variant="secondary" icon={<Ionicons name="pencil-outline" size={16} color={C.text} />} />
         )}
       </View>
-{/* Language */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Language / Taal</Text>
-        <View style={styles.themeRow}>
-          {LANGUAGES.map((lang) => (
-            <TouchableOpacity
-              key={lang.code}
-              onPress={() => setLanguage(lang.code)}
-              style={[
-                styles.langBtn,
-                languageCode === lang.code && { backgroundColor: C.primary, borderColor: C.primary },
-              ]}
-            >
-              <Text style={styles.langFlag}>{lang.flag}</Text>
-              <Text style={[
-                styles.langLabel,
-                languageCode === lang.code && { color: '#FFFFFF' },
-              ]}>{lang.label}</Text>
-            </TouchableOpacity>
-          ))}
+
+      {/* Appearance */}
+      <View style={dynamicStyles.section}>
+        <Text style={dynamicStyles.sectionTitle}>Appearance</Text>
+
+        {/* Dark mode toggle */}
+        <View style={dynamicStyles.settingRow}>
+          <View style={styles.settingLeft}>
+            <Ionicons name={darkMode ? 'moon' : 'sunny-outline'} size={20} color={C.text} />
+            <View>
+              <Text style={dynamicStyles.settingLabel}>Dark Mode</Text>
+              <Text style={dynamicStyles.settingHint}>{darkMode ? 'Dark theme enabled' : 'Light theme enabled'}</Text>
+            </View>
+          </View>
+          <Switch value={darkMode} onValueChange={toggleDarkMode} trackColor={{ true: C.primary, false: C.border }} thumbColor="#FFFFFF" />
+        </View>
+
+        {/* Theme kleuren */}
+        <View style={[dynamicStyles.settingRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 12 }]}>
+          <Text style={dynamicStyles.settingLabel}>Color Theme</Text>
+          <View style={styles.themeRow}>
+            {THEMES.map((theme, index) => (
+              <TouchableOpacity
+                key={theme.name}
+                onPress={() => setTheme(index)}
+                style={[styles.themeCircle, { backgroundColor: theme.primary }, themeIndex === index && styles.themeCircleActive]}
+              />
+            ))}
+          </View>
         </View>
       </View>
-      {/* Appearance */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        <View style={styles.themeRow}>
-          {THEMES.map((theme, index) => (
-            <TouchableOpacity
-              key={theme.name}
-              onPress={() => setTheme(index)}
-              style={[
-                styles.themeCircle,
-                { backgroundColor: theme.primary },
-                themeIndex === index && styles.themeCircleActive,
-              ]}
-            />
-          ))}
+
+      {/* Language */}
+      <View style={dynamicStyles.section}>
+        <Text style={dynamicStyles.sectionTitle}>Language / Taal</Text>
+        <View style={[dynamicStyles.settingRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 12 }]}>
+          <View style={styles.themeRow}>
+            {LANGUAGES.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                onPress={() => setLanguage(lang.code)}
+                style={[styles.langBtn, languageCode === lang.code && { backgroundColor: C.primary, borderColor: C.primary }]}
+              >
+                <Text style={styles.langFlag}>{lang.flag}</Text>
+                <Text style={[styles.langLabel, languageCode === lang.code && { color: '#FFFFFF' }]}>{lang.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </View>
 
       {/* Notifications */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notifications</Text>
-        <View style={styles.settingRow}>
+      <View style={dynamicStyles.section}>
+        <Text style={dynamicStyles.sectionTitle}>Notifications</Text>
+        <View style={dynamicStyles.settingRow}>
           <View style={styles.settingLeft}>
-            <Ionicons name="notifications-outline" size={20} color={Colors.text} />
+            <Ionicons name="notifications-outline" size={20} color={C.text} />
             <View>
-              <Text style={styles.settingLabel}>Push Notifications</Text>
-              <Text style={styles.settingHint}>Get notified when items are added</Text>
+              <Text style={dynamicStyles.settingLabel}>Push Notifications</Text>
+              <Text style={dynamicStyles.settingHint}>Get notified when items are added</Text>
             </View>
           </View>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={handleToggleNotifications}
-            trackColor={{ true: C.primary, false: Colors.border }}
-            thumbColor="#FFFFFF"
-          />
+          <Switch value={notificationsEnabled} onValueChange={handleToggleNotifications} trackColor={{ true: C.primary, false: C.border }} thumbColor="#FFFFFF" />
         </View>
       </View>
 
       {/* App info */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App</Text>
-        <SettingLink icon="information-circle-outline" label="About Shoply" onPress={() => setModalContent('about')} />
-        <SettingLink icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => setModalContent('privacy')} />
-        <SettingLink icon="document-text-outline" label="Terms of Service" onPress={() => setModalContent('terms')} />
+      <View style={dynamicStyles.section}>
+        <Text style={dynamicStyles.sectionTitle}>App</Text>
+        <TouchableOpacity style={dynamicStyles.settingRow} onPress={() => setModalContent('about')} activeOpacity={0.7}>
+          <View style={styles.settingLeft}>
+            <Ionicons name="information-circle-outline" size={20} color={C.text} />
+            <Text style={dynamicStyles.settingLabel}>About Shoply</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={dynamicStyles.settingRow} onPress={() => setModalContent('privacy')} activeOpacity={0.7}>
+          <View style={styles.settingLeft}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={C.text} />
+            <Text style={dynamicStyles.settingLabel}>Privacy Policy</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={dynamicStyles.settingRow} onPress={() => setModalContent('terms')} activeOpacity={0.7}>
+          <View style={styles.settingLeft}>
+            <Ionicons name="document-text-outline" size={20} color={C.text} />
+            <Text style={dynamicStyles.settingLabel}>Terms of Service</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
+        </TouchableOpacity>
       </View>
 
-      <Text style={styles.version}>Shoply v1.0.0</Text>
-
-      <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-        <Text style={styles.signOutText}>Sign Out</Text>
-      </TouchableOpacity>
+      <Text style={dynamicStyles.version}>Shoply v1.0.0</Text>
+      <Button label="Sign Out" onPress={handleSignOut} variant="danger" style={styles.signOutBtn} />
 
       {/* Info Modal */}
       <Modal visible={!!modalContent} transparent animationType="slide" onRequestClose={() => setModalContent(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalContent}>
+        <View style={dynamicStyles.modalBackdrop}>
+          <View style={dynamicStyles.modalContent}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>
+            <Text style={dynamicStyles.modalTitle}>
               {modalContent ? MODAL_CONTENT[modalContent].title : ''}
             </Text>
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalText}>
+              <Text style={dynamicStyles.modalText}>
                 {modalContent ? MODAL_CONTENT[modalContent].text : ''}
               </Text>
             </ScrollView>
@@ -191,40 +240,17 @@ export default function ProfileScreen() {
   );
 }
 
-function SettingLink({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.settingLeft}>
-        <Ionicons name={icon} size={20} color={Colors.text} />
-        <Text style={styles.settingLabel}>{label}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
   content: { padding: Spacing.base, paddingBottom: 48, gap: Spacing.xl },
   avatarSection: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
   nameInput: {
-    fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.text,
-    borderBottomWidth: 2, borderBottomColor: Colors.primary, textAlign: 'center', minWidth: 200, paddingVertical: 4,
+    fontSize: Typography.xl, fontWeight: Typography.bold,
+    borderBottomWidth: 2, textAlign: 'center', minWidth: 200, paddingVertical: 4,
   },
-  displayName: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.text },
-  username: { fontSize: Typography.base, color: Colors.textSecondary },
-  email: { fontSize: Typography.sm, color: Colors.textTertiary },
   editActions: { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'center' },
   halfBtn: { flex: 1 },
-  section: {
-    backgroundColor: Colors.bgCard, borderRadius: Radii.lg,
-    overflow: 'hidden', padding: Spacing.base, gap: Spacing.md, ...Shadows.sm,
-  },
-  sectionTitle: {
-    fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textTertiary,
-    textTransform: 'uppercase', letterSpacing: 1,
-  },
-  themeRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', paddingVertical: 4 },
+  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
+  themeRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', paddingBottom: 4 },
   themeCircle: { width: 36, height: 36, borderRadius: 18 },
   themeCircleActive: { borderWidth: 3, borderColor: '#0F172A' },
   langBtn: {
@@ -233,26 +259,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.bgCard,
   },
   langFlag: { fontSize: 18 },
-  langLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.text },settingRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
-  settingLabel: { fontSize: Typography.base, color: Colors.text, fontWeight: Typography.medium },
-  settingHint: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
-  version: { textAlign: 'center', fontSize: Typography.sm, color: Colors.textTertiary },
-  signOutBtn: {
-    backgroundColor: '#EF4444', padding: 16, borderRadius: Radii.lg, alignItems: 'center',
-  },
-  signOutText: { color: 'white', fontWeight: Typography.bold, fontSize: Typography.base },
-  modalBackdrop: { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
-  modalContent: {
-    backgroundColor: Colors.bgCard, borderTopLeftRadius: Radii.xl, borderTopRightRadius: Radii.xl,
-    padding: Spacing.xl, paddingBottom: Spacing['3xl'], maxHeight: '80%',
-  },
+  langLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.text },
+  signOutBtn: { marginTop: Spacing.sm },
   modalHandle: { width: 36, height: 4, backgroundColor: Colors.border, borderRadius: Radii.full, alignSelf: 'center', marginBottom: Spacing.md },
-  modalTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.text, marginBottom: Spacing.base },
-  modalScroll: { flex: 1 },
-  modalText: { fontSize: Typography.base, color: Colors.textSecondary, lineHeight: 24 },
+  modalScroll: { marginBottom: Spacing.base },
   modalCloseBtn: { marginTop: Spacing.sm },
 });

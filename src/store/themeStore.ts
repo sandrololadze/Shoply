@@ -12,10 +12,21 @@ export const THEMES = [
 
 interface ThemeState {
   themeIndex: number;
+  darkMode: boolean;
   setTheme: (index: number) => void;
+  toggleDarkMode: () => void;
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
-  themeIndex: 0,
-  setTheme: (index) => set({ themeIndex: index }),
+export const useThemeStore = create<ThemeState>((set, get) => ({
+  themeIndex: typeof window !== 'undefined' ? Number(localStorage.getItem('shoply-theme') ?? 0) : 0,
+  darkMode: typeof window !== 'undefined' ? localStorage.getItem('shoply-dark') === 'true' : false,
+  setTheme: (index) => {
+    if (typeof window !== 'undefined') localStorage.setItem('shoply-theme', String(index));
+    set({ themeIndex: index });
+  },
+  toggleDarkMode: () => {
+    const next = !get().darkMode;
+    if (typeof window !== 'undefined') localStorage.setItem('shoply-dark', String(next));
+    set({ darkMode: next });
+  },
 }));
