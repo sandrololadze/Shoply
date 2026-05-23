@@ -1,6 +1,4 @@
 // src/hooks/useItems.ts
-// Real-time items with optimistic updates, offline queuing, conflict resolution
-
 import { useEffect, useRef } from 'react';
 import {
   useMutation,
@@ -18,18 +16,17 @@ import type {
   UpdateItemInput,
 } from '../types';
 
-// ─── Query Keys ─────────────────────────────────────────────
 export const itemKeys = {
   all: ['items'] as const,
   list: (groupId: string) => [...itemKeys.all, groupId] as const,
 };
 
-// ─── Fetch items for a group ─────────────────────────────────
+// Global map to track active channels — prevents duplicate subscriptions
+const activeChannels = new Map<string, ReturnType<typeof supabase.channel>>();
+
 export const useItems = (groupId: string) => {
   const queryClient = useQueryClient();
-  const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Fetch query
   const query = useQuery({
     queryKey: itemKeys.list(groupId),
     enabled: !!groupId,
@@ -43,7 +40,7 @@ export const useItems = (groupId: string) => {
           completed_by_profile:profiles!items_completed_by_fkey(*)
         `)
         .eq('group_id', groupId)
-        .neq('status', 'deleted')        // Don't show deleted items
+        .neq('status', 'deleted')
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true });
 
@@ -52,20 +49,21 @@ export const useItems = (groupId: string) => {
     },
   });
 
-  // ─── Real-time subscription ──────────────────────────────
   useEffect(() => {
     if (!groupId) return;
 
-    // Subscribe to changes on this group's items
+    // If a channel for this group already exists, don't create another
+    if (activeChannels.has(groupId)) return;
+
     const channel = supabase
-      .channel(`items:${groupId}`)           // Unique channel per group
+      .channel(`items:${groupId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',                        // INSERT, UPDATE, DELETE
+          event: '*',
           schema: 'public',
           table: 'items',
-          filter: `group_id=eq.${groupId}`, // Only this group
+          filter: `group_id=eq.${groupId}`,
         },
         async (payload) => {
           const event = payload as unknown as RealtimeItemEvent;
@@ -75,25 +73,23 @@ export const useItems = (groupId: string) => {
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           console.log(`[RT] Subscribed to items:${groupId}`);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`[RT] Channel error for items:${groupId}`);
         }
       });
 
-    realtimeRef.current = channel;
+    activeChannels.set(groupId, channel);
 
-    // Cleanup on unmount or groupId change
     return () => {
-      supabase.removeChannel(channel);
-      realtimeRef.current = null;
+      const ch = activeChannels.get(groupId);
+      if (ch) {
+        supabase.removeChannel(ch);
+        activeChannels.delete(groupId);
+      }
     };
   }, [groupId, queryClient]);
 
   return query;
 };
 
-// ─── Handle real-time events (INSERT/UPDATE/DELETE) ─────────
-// This function applies changes from OTHER users to our local cache
 function handleRealtimeEvent(
   queryClient: QueryClient,
   groupId: string,
@@ -105,42 +101,32 @@ function handleRealtimeEvent(
     switch (event.eventType) {
       case 'INSERT': {
         const newItem = event.new!;
-        // Avoid duplicates (in case we added it ourselves via optimistic update)
         if (old.some((item) => item.id === newItem.id)) {
-          // Update with server-confirmed data (may have different version/timestamps)
           return old.map((item) => (item.id === newItem.id ? { ...item, ...newItem } : item));
         }
-        // Fetch with profile data (real-time doesn't include joins)
         fetchItemWithProfile(queryClient, groupId, newItem.id);
-        return old; // Will update after profile fetch
+        return old;
       }
-
       case 'UPDATE': {
         const updatedItem = event.new!;
         return old.map((item) => {
           if (item.id !== updatedItem.id) return item;
-          // CONFLICT RESOLUTION: Only apply if server version is newer
-          // This prevents a race condition where our optimistic update
-          // gets overwritten by a stale event from the server
           if (updatedItem.version > (item.version ?? 0)) {
             return { ...item, ...updatedItem };
           }
-          return item; // Keep local state if we have a newer version
+          return item;
         });
       }
-
       case 'DELETE': {
         const deletedId = event.old?.id;
         return old.filter((item) => item.id !== deletedId);
       }
-
       default:
         return old;
     }
   });
 }
 
-// Fetch a single item with profile joins after real-time INSERT
 async function fetchItemWithProfile(
   queryClient: QueryClient,
   groupId: string,
@@ -163,7 +149,6 @@ async function fetchItemWithProfile(
   }
 }
 
-// ─── Add an item (optimistic update) ────────────────────────
 export const useAddItem = (groupId: string) => {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user)!;
@@ -189,7 +174,6 @@ export const useAddItem = (groupId: string) => {
 
       if (error) throw error;
 
-      // Log activity
       await supabase.from('activity_log').insert({
         group_id: groupId,
         user_id: user.id,
@@ -201,18 +185,12 @@ export const useAddItem = (groupId: string) => {
       return data as Item;
     },
 
-    // ─── OPTIMISTIC UPDATE ─────────────────────────────────
-    // Show item immediately before server responds
     onMutate: async (input) => {
-      // Cancel any in-flight refetches
       await queryClient.cancelQueries({ queryKey: itemKeys.list(groupId) });
-
-      // Snapshot previous state for rollback
       const previousItems = queryClient.getQueryData<Item[]>(itemKeys.list(groupId));
 
-      // Create a temporary item with a local ID
       const optimisticItem: Item = {
-        id: `temp-${Date.now()}`,           // Temporary ID
+        id: `temp-${Date.now()}`,
         group_id: groupId,
         name: input.name,
         quantity: input.quantity ?? null,
@@ -230,7 +208,6 @@ export const useAddItem = (groupId: string) => {
         updated_at: new Date().toISOString(),
       };
 
-      // Apply optimistic update to cache
       queryClient.setQueryData<Item[]>(itemKeys.list(groupId), (old) => [
         ...(old ?? []),
         optimisticItem,
@@ -239,7 +216,6 @@ export const useAddItem = (groupId: string) => {
       return { previousItems, optimisticId: optimisticItem.id };
     },
 
-    // Replace temp item with real server item on success
     onSuccess: (serverItem, _input, context) => {
       queryClient.setQueryData<Item[]>(itemKeys.list(groupId), (old) =>
         (old ?? []).map((item) =>
@@ -248,7 +224,6 @@ export const useAddItem = (groupId: string) => {
       );
     },
 
-    // Roll back optimistic update on error
     onError: (_error, _input, context) => {
       if (context?.previousItems) {
         queryClient.setQueryData(itemKeys.list(groupId), context.previousItems);
@@ -257,7 +232,6 @@ export const useAddItem = (groupId: string) => {
   });
 };
 
-// ─── Toggle item completion (optimistic) ────────────────────
 export const useToggleItem = (groupId: string) => {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user)!;
@@ -275,7 +249,7 @@ export const useToggleItem = (groupId: string) => {
           version: item.version + 1,
         })
         .eq('id', item.id)
-        .eq('version', item.version)       // Optimistic locking check
+        .eq('version', item.version)
         .select()
         .single();
 
@@ -295,7 +269,6 @@ export const useToggleItem = (groupId: string) => {
       await queryClient.cancelQueries({ queryKey: itemKeys.list(groupId) });
       const previousItems = queryClient.getQueryData<Item[]>(itemKeys.list(groupId));
 
-      // Apply optimistic toggle immediately
       queryClient.setQueryData<Item[]>(itemKeys.list(groupId), (old) =>
         (old ?? []).map((i) =>
           i.id === item.id
@@ -327,20 +300,12 @@ export const useToggleItem = (groupId: string) => {
   });
 };
 
-// ─── Edit item (with conflict resolution) ───────────────────
 export const useEditItem = (groupId: string) => {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user)!;
 
   return useMutation({
-    mutationFn: async ({
-      itemId,
-      updates,
-    }: {
-      itemId: string;
-      updates: UpdateItemInput;
-    }) => {
-      // Use our safe update function with version check
+    mutationFn: async ({ itemId, updates }: { itemId: string; updates: UpdateItemInput }) => {
       const { data: success, error } = await supabase.rpc('update_item_safe', {
         p_item_id: itemId,
         p_name: updates.name,
@@ -352,14 +317,12 @@ export const useEditItem = (groupId: string) => {
 
       if (error) throw error;
 
-      // If version mismatch, fetch latest and return conflict error
       if (!success) {
         const { data: current } = await supabase
           .from('items')
           .select('*')
           .eq('id', itemId)
           .single();
-
         throw Object.assign(new Error('CONFLICT'), { currentItem: current });
       }
 
@@ -378,7 +341,6 @@ export const useEditItem = (groupId: string) => {
       await queryClient.cancelQueries({ queryKey: itemKeys.list(groupId) });
       const previousItems = queryClient.getQueryData<Item[]>(itemKeys.list(groupId));
 
-      // Optimistic update
       queryClient.setQueryData<Item[]>(itemKeys.list(groupId), (old) =>
         (old ?? []).map((item) =>
           item.id === itemId
@@ -397,20 +359,17 @@ export const useEditItem = (groupId: string) => {
     },
 
     onSettled: () => {
-      // Always refetch to get authoritative server state
       queryClient.invalidateQueries({ queryKey: itemKeys.list(groupId) });
     },
   });
 };
 
-// ─── Delete item ─────────────────────────────────────────────
 export const useDeleteItem = (groupId: string) => {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user)!;
 
   return useMutation({
     mutationFn: async (itemId: string) => {
-      // Soft delete — set status to 'deleted' for audit trail
       const { error } = await supabase
         .from('items')
         .update({ status: 'deleted' })
@@ -430,7 +389,6 @@ export const useDeleteItem = (groupId: string) => {
       await queryClient.cancelQueries({ queryKey: itemKeys.list(groupId) });
       const previousItems = queryClient.getQueryData<Item[]>(itemKeys.list(groupId));
 
-      // Immediately remove from UI
       queryClient.setQueryData<Item[]>(itemKeys.list(groupId), (old) =>
         (old ?? []).filter((item) => item.id !== itemId)
       );
