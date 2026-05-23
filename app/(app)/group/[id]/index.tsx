@@ -242,7 +242,6 @@ export default function GroupDetailScreen() {
               youLabel={t('you')}
               C={C}
             />
-            />
           );
         }}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
