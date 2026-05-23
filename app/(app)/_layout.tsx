@@ -65,6 +65,7 @@ export default function AppLayout() {
       <Tabs.Screen name="group/[id]/index" options={{ href: null }} />
       <Tabs.Screen name="group/[id]/activity" options={{ href: null }} />
       <Tabs.Screen name="group/[id]/members" options={{ href: null }} />
+      <Tabs.Screen name="group/[id]/store" options={{ href: null }} />
     </Tabs>
   );
 }

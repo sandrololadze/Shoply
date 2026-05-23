@@ -261,6 +261,12 @@ export default function GroupDetailScreen() {
       <View style={{ position: 'absolute', bottom: 24, right: 24, gap: 12, alignItems: 'center' }}>
         <TouchableOpacity
           style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.bgCard, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.primary, ...Shadows.md }}
+          onPress={() => router.push(`/(app)/group/${groupId}/store`)} activeOpacity={0.85}
+        >
+          <Ionicons name="storefront-outline" size={24} color={C.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.bgCard, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.primary, ...Shadows.md }}
           onPress={() => setShowScanner(true)} activeOpacity={0.85}
         >
           <Ionicons name="barcode-outline" size={24} color={C.primary} />
