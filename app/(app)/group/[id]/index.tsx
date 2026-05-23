@@ -17,7 +17,8 @@ import { useAuthStore } from '../../../../src/store/authStore';
 import { useNetworkStore } from '../../../../src/store/networkStore';
 import { useLanguageStore } from '../../../../src/store/languageStore';
 import { useProductSearch } from '../../../../src/hooks/useProductSearch';
-import { BarcodeScanner } from '../../../../src/components/BarcodeScanner';import { Avatar, Button, EmptyState, ErrorState, LoadingScreen } from '../../../../src/components/ui';
+import { BarcodeScanner } from '../../../../src/components/BarcodeScanner';
+import { Avatar, Button, EmptyState, ErrorState, LoadingScreen } from '../../../../src/components/ui';
 import { Colors, Radii, Shadows, Spacing, Typography } from '../../../../src/lib/design';
 import { detectCategory } from '../../../../src/lib/categories';
 import type { Item } from '../../../../src/types';
@@ -158,29 +159,27 @@ export default function GroupDetailScreen() {
     } catch {}
   };
 
-  const activeItems = items?.filter((i) => i.status === 'active') ?? [];
-  const completedItems = items?.filter((i) => i.status === 'completed') ?? [];
-const handleBarcodeScan = async (barcode: string) => {
+  const handleBarcodeScan = async (barcode: string) => {
     setShowScanner(false);
     try {
-      const res = await fetch(
-        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
-      );
+      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       const data = await res.json();
       if (data.status === 1) {
-        const product = data.product;
-        addForm.setValue('name', product.product_name ?? barcode);
-        addForm.setValue('quantity', product.quantity ?? '');
-        setShowAddItem(true);
+        addForm.setValue('name', data.product.product_name ?? barcode);
+        addForm.setValue('quantity', data.product.quantity ?? '');
       } else {
         addForm.setValue('name', barcode);
-        setShowAddItem(true);
       }
+      setShowAddItem(true);
     } catch {
       addForm.setValue('name', barcode);
       setShowAddItem(true);
     }
   };
+
+  const activeItems = items?.filter((i) => i.status === 'active') ?? [];
+  const completedItems = items?.filter((i) => i.status === 'completed') ?? [];
+
   const itemLabels = {
     productUrl: t('productUrl'),
     urlPlaceholder: t('urlPlaceholder'),
@@ -196,20 +195,16 @@ const handleBarcodeScan = async (barcode: string) => {
   if (isLoading) return <LoadingScreen message={t('loadingLists')} />;
   if (isError) return <ErrorState message="Failed to load items" onRetry={refetch} />;
 
-  const category = detectCategory(item.name);
-
   return (
-    <View style={[styles.itemRow, isCompleted && styles.itemRowCompleted, { borderLeftWidth: 4, borderLeftColor: isCompleted ? Colors.border : category.color }]}>
-      <View style={[styles.categoryIcon, { backgroundColor: isCompleted ? Colors.bgElevated : category.surface }]}>
-        <Text style={styles.categoryEmoji}>{category.emoji}</Text>
-      </View>
-      <TouchableOpacity
-        style={[styles.checkbox, isCompleted && styles.checkboxChecked, !isCompleted && { borderColor: category.color }]}
-        onPress={onToggle}
-        activeOpacity={0.7}
-      >
-        {isCompleted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
-      </TouchableOpacity>
+    <View style={styles.container}>
+      {group && (
+        <TouchableOpacity style={styles.shareBanner} onPress={handleShare}>
+          <View style={styles.shareLeft}>
+            <Ionicons name="link-outline" size={16} color={Colors.primary} />
+            <Text style={styles.shareCode}>{group.invite_code}</Text>
+          </View>
+          <Text style={styles.shareHint}>{t('tapToInvite')}</Text>
+        </TouchableOpacity>
       )}
 
       <FlatList
@@ -307,11 +302,15 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel }: 
   const isCompleted = item.status === 'completed';
   const addedByName = item.added_by_profile?.display_name ?? 'Unknown';
   const isMyItem = item.added_by === currentUserId;
+  const category = detectCategory(item.name);
 
   return (
-    <View style={[styles.itemRow, isCompleted && styles.itemRowCompleted]}>
+    <View style={[styles.itemRow, isCompleted && styles.itemRowCompleted, { borderLeftWidth: 4, borderLeftColor: isCompleted ? Colors.border : category.color }]}>
+      <View style={[styles.categoryIcon, { backgroundColor: isCompleted ? Colors.bgElevated : category.surface }]}>
+        <Text style={styles.categoryEmoji}>{category.emoji}</Text>
+      </View>
       <TouchableOpacity
-        style={[styles.checkbox, isCompleted && styles.checkboxChecked]}
+        style={[styles.checkbox, isCompleted && styles.checkboxChecked, !isCompleted && { borderColor: category.color }]}
         onPress={onToggle}
         activeOpacity={0.7}
       >
@@ -359,7 +358,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
   onSubmit: (data: ItemForm) => void;
   onClose: () => void; isLoading: boolean;
   labels: Record<string, string>;
-  suggestions: { name: string; quantity?: string; source: string; image?: string }[];
+  suggestions: { name: string; quantity?: string; source: string }[];
   isSearching: boolean;
   onSearch: (q: string) => void;
   onClearSearch: () => void;
@@ -422,7 +421,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
             <Text style={styles.fieldHint}>{t('autoFillHint')}</Text>
           </View>
 
-        <View style={styles.field}>
+          <View style={styles.field}>
             <Text style={styles.fieldLabel}>{t('itemName')} *</Text>
             <Controller
               control={form.control}
@@ -451,9 +450,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
                       onClearSearch();
                     }}
                   >
-                    <Text style={styles.suggestionSource}>
-                      {s.source === 'history' ? '🕐' : '🌍'}
-                    </Text>
+                    <Text style={styles.suggestionSource}>{s.source === 'history' ? '🕐' : '🌍'}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.suggestionName} numberOfLines={1}>{s.name}</Text>
                       {s.quantity && <Text style={styles.suggestionQty}>{s.quantity}</Text>}
@@ -532,13 +529,15 @@ const styles = StyleSheet.create({
   sectionLine: { flex: 1, height: 1, backgroundColor: Colors.border },
   sectionLabel: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textTertiary, textTransform: 'uppercase', letterSpacing: 1 },
   itemRow: {
-    flexDirection: 'row', alignItems: 'flex-start', backgroundColor: Colors.bgCard,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.bgCard,
     borderRadius: Radii.lg, padding: Spacing.base, gap: Spacing.md, ...Shadows.sm,
+    overflow: 'hidden',
   },
-  itemRowCompleted: { opacity: 0.7 },
-  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  categoryIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  categoryEmoji: { fontSize: 20 },checkboxChecked: { backgroundColor: Colors.success, borderColor: Colors.success },
+  itemRowCompleted: { opacity: 0.6 },
+  categoryIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  categoryEmoji: { fontSize: 20 },
+  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: Colors.success, borderColor: Colors.success },
   itemContent: { flex: 1, gap: 4 },
   itemName: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.text, lineHeight: 22 },
   itemNameCompleted: { textDecorationLine: 'line-through', color: Colors.textTertiary },
@@ -555,9 +554,15 @@ const styles = StyleSheet.create({
   urlChipText: { fontSize: Typography.xs, color: Colors.primary, maxWidth: 200 },
   itemActions: { flexDirection: 'row', gap: 4 },
   itemActionBtn: { padding: 8, borderRadius: Radii.sm },
+  fabContainer: { position: 'absolute', bottom: 24, right: 24, gap: 12, alignItems: 'center' },
+  fabSecondary: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.primary, ...Shadows.md,
+  },
   fab: {
-    position: 'absolute', bottom: 24, right: 24, width: 60, height: 60,
-    borderRadius: 30, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', ...Shadows.lg,
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', ...Shadows.lg,
   },
   modalBackdrop: { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
   modalContent: {
@@ -583,20 +588,7 @@ const styles = StyleSheet.create({
   inputError: { borderColor: Colors.danger },
   notesInput: { height: 80, textAlignVertical: 'top', paddingTop: 13 },
   errorText: { fontSize: Typography.xs, color: Colors.danger },
-  fabContainer: { position: 'absolute', bottom: 24, right: 24, gap: 12, alignItems: 'center' },
-  fabSecondary: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.primary, ...Shadows.md,
-  },
-errorText: { fontSize: Typography.xs, color: Colors.danger },
-  fabContainer: { position: 'absolute', bottom: 24, right: 24, gap: 12, alignItems: 'center' },
-  fabSecondary: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.primary, ...Shadows.md,
-  },
-suggestions: {
+  suggestions: {
     borderWidth: 1, borderColor: Colors.border, borderRadius: Radii.md,
     backgroundColor: Colors.bgCard, overflow: 'hidden',
   },
