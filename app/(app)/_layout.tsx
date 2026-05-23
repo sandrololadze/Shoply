@@ -34,6 +34,7 @@ export default function AppLayout() {
           fontSize: 18,
           color: Colors.text,
         },
+        contentStyle: { backgroundColor: Colors.bg },
       }}
     >
       <Tabs.Screen
@@ -46,7 +47,7 @@ export default function AppLayout() {
           headerTitle: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 24 }}>🛒</Text>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1E293B' }}>Shoply</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: Colors.text }}>Shoply</Text>
             </View>
           ),
         }}

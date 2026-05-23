@@ -33,6 +33,8 @@ type JoinForm = z.infer<typeof joinSchema>;
 export default function GroupsScreen() {
   const C = useColors();
   const { t } = useLanguageStore();
+const bgStyle = { flex: 1, backgroundColor: C.bg };
+  const cardStyle = { backgroundColor: C.bgCard };
   const { data: groups, isLoading, isError, error, refetch, isFetching } = useGroups();
   const createGroup = useCreateGroup();
   const joinGroup = useJoinGroup();
@@ -72,7 +74,7 @@ export default function GroupsScreen() {
   if (isError) return <ErrorState message={String(error)} onRetry={refetch} />;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, bgStyle]}>
       {isGuest && (
         <TouchableOpacity
           style={styles.guestBanner}
