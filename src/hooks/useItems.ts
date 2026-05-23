@@ -318,12 +318,8 @@ export const useEditItem = (groupId: string) => {
         p_notes: updates.notes ?? null,
         p_url: updates.url ?? null,
         p_expected_version: updates.version,
+        p_price: updates.price ?? null,
       });
-
-      // Also update price separately since rpc doesn't handle it
-      if (success) {
-        await supabase.from('items').update({ price: updates.price ?? null }).eq('id', itemId);
-      }
 
       if (error) throw error;
 
