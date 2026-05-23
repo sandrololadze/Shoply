@@ -16,7 +16,8 @@ import { useGroups } from '../../../../src/hooks/useGroups';
 import { useAuthStore } from '../../../../src/store/authStore';
 import { useNetworkStore } from '../../../../src/store/networkStore';
 import { useLanguageStore } from '../../../../src/store/languageStore';
-import { Avatar, Button, EmptyState, ErrorState, LoadingScreen } from '../../../../src/components/ui';
+import { useProductSearch } from '../../../../src/hooks/useProductSearch';
+import { BarcodeScanner } from '../../../../src/components/BarcodeScanner';import { Avatar, Button, EmptyState, ErrorState, LoadingScreen } from '../../../../src/components/ui';
 import { Colors, Radii, Shadows, Spacing, Typography } from '../../../../src/lib/design';
 import type { Item } from '../../../../src/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -47,6 +48,8 @@ export default function GroupDetailScreen() {
 
   const [showAddItem, setShowAddItem] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const { results, isSearching, search, clear } = useProductSearch(groupId!);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -156,7 +159,27 @@ export default function GroupDetailScreen() {
 
   const activeItems = items?.filter((i) => i.status === 'active') ?? [];
   const completedItems = items?.filter((i) => i.status === 'completed') ?? [];
-
+const handleBarcodeScan = async (barcode: string) => {
+    setShowScanner(false);
+    try {
+      const res = await fetch(
+        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
+      );
+      const data = await res.json();
+      if (data.status === 1) {
+        const product = data.product;
+        addForm.setValue('name', product.product_name ?? barcode);
+        addForm.setValue('quantity', product.quantity ?? '');
+        setShowAddItem(true);
+      } else {
+        addForm.setValue('name', barcode);
+        setShowAddItem(true);
+      }
+    } catch {
+      addForm.setValue('name', barcode);
+      setShowAddItem(true);
+    }
+  };
   const itemLabels = {
     productUrl: t('productUrl'),
     urlPlaceholder: t('urlPlaceholder'),
@@ -224,9 +247,20 @@ export default function GroupDetailScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => setShowAddItem(true)} activeOpacity={0.85}>
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+      <View style={styles.fabContainer}>
+        <TouchableOpacity style={styles.fabSecondary} onPress={() => setShowScanner(true)} activeOpacity={0.85}>
+          <Ionicons name="barcode-outline" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.fab} onPress={() => setShowAddItem(true)} activeOpacity={0.85}>
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+
+      <BarcodeScanner
+        visible={showScanner}
+        onScan={handleBarcodeScan}
+        onClose={() => setShowScanner(false)}
+      />
 
       <ItemFormModal
         visible={showAddItem}
@@ -237,6 +271,10 @@ export default function GroupDetailScreen() {
         onClose={() => { setShowAddItem(false); addForm.reset(); }}
         isLoading={addItem.isPending}
         labels={itemLabels}
+        suggestions={results}
+        isSearching={isSearching}
+        onSearch={search}
+        onClearSearch={clear}
       />
 
       <ItemFormModal
@@ -248,6 +286,10 @@ export default function GroupDetailScreen() {
         onClose={() => setEditingItem(null)}
         isLoading={editItem.isPending}
         labels={itemLabels}
+        suggestions={[]}
+        isSearching={false}
+        onSearch={() => {}}
+        onClearSearch={() => {}}
       />
     </View>
   );
@@ -306,12 +348,16 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel }: 
   );
 }
 
-function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, isLoading, labels }: {
+function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, isLoading, labels, suggestions, isSearching, onSearch, onClearSearch }: {
   visible: boolean; title: string; submitLabel: string;
   form: ReturnType<typeof useForm<ItemForm>>;
   onSubmit: (data: ItemForm) => void;
   onClose: () => void; isLoading: boolean;
   labels: Record<string, string>;
+  suggestions: { name: string; quantity?: string; source: string; image?: string }[];
+  isSearching: boolean;
+  onSearch: (q: string) => void;
+  onClearSearch: () => void;
 }) {
   const t = (key: string) => labels[key] ?? key;
   const [fetching, setFetching] = useState(false);
@@ -371,7 +417,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
             <Text style={styles.fieldHint}>{t('autoFillHint')}</Text>
           </View>
 
-          <View style={styles.field}>
+        <View style={styles.field}>
             <Text style={styles.fieldLabel}>{t('itemName')} *</Text>
             <Controller
               control={form.control}
@@ -380,7 +426,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
                 <TextInput
                   style={[styles.input, form.formState.errors.name && styles.inputError]}
                   value={value}
-                  onChangeText={onChange}
+                  onChangeText={(text) => { onChange(text); onSearch(text); }}
                   onBlur={onBlur}
                   placeholder={t('itemNamePlaceholder')}
                   placeholderTextColor={Colors.textTertiary}
@@ -388,6 +434,29 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
                 />
               )}
             />
+            {suggestions.length > 0 && (
+              <View style={styles.suggestions}>
+                {suggestions.map((s, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.suggestionItem}
+                    onPress={() => {
+                      form.setValue('name', s.name);
+                      if (s.quantity) form.setValue('quantity', s.quantity);
+                      onClearSearch();
+                    }}
+                  >
+                    <Text style={styles.suggestionSource}>
+                      {s.source === 'history' ? '🕐' : '🌍'}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.suggestionName} numberOfLines={1}>{s.name}</Text>
+                      {s.quantity && <Text style={styles.suggestionQty}>{s.quantity}</Text>}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
           <View style={styles.field}>
@@ -508,4 +577,28 @@ const styles = StyleSheet.create({
   inputError: { borderColor: Colors.danger },
   notesInput: { height: 80, textAlignVertical: 'top', paddingTop: 13 },
   errorText: { fontSize: Typography.xs, color: Colors.danger },
+  fabContainer: { position: 'absolute', bottom: 24, right: 24, gap: 12, alignItems: 'center' },
+  fabSecondary: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.primary, ...Shadows.md,
+  },
+errorText: { fontSize: Typography.xs, color: Colors.danger },
+  fabContainer: { position: 'absolute', bottom: 24, right: 24, gap: 12, alignItems: 'center' },
+  fabSecondary: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: Colors.bgCard, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.primary, ...Shadows.md,
+  },
+suggestions: {
+    borderWidth: 1, borderColor: Colors.border, borderRadius: Radii.md,
+    backgroundColor: Colors.bgCard, overflow: 'hidden',
+  },
+  suggestionItem: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    padding: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  suggestionSource: { fontSize: 16 },
+  suggestionName: { fontSize: Typography.sm, color: Colors.text, fontWeight: Typography.medium },
+  suggestionQty: { fontSize: Typography.xs, color: Colors.textTertiary },
 });
