@@ -226,21 +226,22 @@ export default function GroupDetailScreen() {
         renderItem={({ item }) => {
           if (item.id === '__divider__') {
             return (
-              <View style={styles.sectionDivider}>
-                <View style={styles.sectionLine} />
-                <Text style={styles.sectionLabel}>{t('completed')} ({completedItems.length})</Text>
-                <View style={styles.sectionLine} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginVertical: Spacing.md }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
+                <Text style={{ fontSize: Typography.xs, fontWeight: Typography.semibold, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: 1 }}>{t('completed')} ({completedItems.length})</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
               </View>
             );
           }
-          return (
-            <ItemRow
+          <ItemRow
               item={item}
               currentUserId={user.id}
               onToggle={() => toggleItem.mutate(item)}
               onEdit={() => openEdit(item)}
               onDelete={() => handleDelete(item)}
               youLabel={t('you')}
+              C={C}
+            />
             />
           );
         }}
@@ -295,8 +296,8 @@ export default function GroupDetailScreen() {
   );
 }
 
-function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel }: {
-  item: Item; currentUserId: string; youLabel: string;
+function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel, C }: {
+  item: Item; currentUserId: string; youLabel: string; C: ReturnType<typeof useColors>;  item: Item; currentUserId: string; youLabel: string;
   onToggle: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   const isCompleted = item.status === 'completed';
@@ -305,20 +306,54 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel }: 
   const category = detectCategory(item.name);
 
   return (
-    <View style={[styles.itemRow, isCompleted && styles.itemRowCompleted, { borderLeftWidth: 4, borderLeftColor: isCompleted ? Colors.border : category.color }]}>
-      <View style={[styles.categoryIcon, { backgroundColor: isCompleted ? Colors.bgElevated : category.surface }]}>
-        <Text style={styles.categoryEmoji}>{category.emoji}</Text>
-      </View>
-      <TouchableOpacity
-        style={[styles.checkbox, isCompleted && styles.checkboxChecked, !isCompleted && { borderColor: category.color }]}
-        onPress={onToggle}
-        activeOpacity={0.7}
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      {group && (
+        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.primarySurface, marginHorizontal: Spacing.base, marginTop: Spacing.base, borderRadius: Radii.md, padding: Spacing.md, borderWidth: 1, borderColor: C.primaryLight + '40' }} onPress={handleShare}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+            <Ionicons name="link-outline" size={16} color={C.primary} />
+            <Text style={{ fontSize: Typography.base, fontWeight: Typography.bold, color: C.primary, letterSpacing: 2 }}>{group.invite_code}</Text>
+          </View>
+          <Text style={{ fontSize: Typography.xs, color: C.primary }}>{t('tapToInvite')}</Text>
+        </TouchableOpacity>
+      )}
+        style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: isCompleted ? C.success : category.color, alignItems: 'center', justifyContent: 'center', backgroundColor: isCompleted ? C.success : 'transparent' }}
+        onPress={onToggle} activeOpacity={0.7}
       >
         {isCompleted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
       </TouchableOpacity>
-      <View style={styles.itemContent}>
-        <Text style={[styles.itemName, isCompleted && styles.itemNameCompleted]}>{item.name}</Text>
-        <View style={styles.itemMeta}>
+      <View style={{ flex: 1, gap: 4 }}>
+        <Text style={{ fontSize: Typography.base, fontWeight: Typography.medium, color: isCompleted ? C.textTertiary : C.text, lineHeight: 22, textDecorationLine: isCompleted ? 'line-through' : 'none' }}>{item.name}</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, alignItems: 'center' }}>
+          {item.quantity && (
+            <Text style={{ fontSize: Typography.xs, color: C.textSecondary, backgroundColor: C.bgElevated, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radii.full }}>📦 {item.quantity}</Text>
+          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Avatar userId={item.added_by} displayName={addedByName} size={16} />
+            <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>
+              {isMyItem ? youLabel : addedByName}{' · '}
+              {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+            </Text>
+          </View>
+        </View>
+        {item.notes && <Text style={{ fontSize: Typography.sm, color: C.textSecondary, fontStyle: 'italic', marginTop: 2 }}>{item.notes}</Text>}
+        {item.url && (
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.primarySurface, borderRadius: Radii.full, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 2 }} onPress={() => Linking.openURL(item.url!)} activeOpacity={0.7}>
+            <Ionicons name="open-outline" size={12} color={C.primary} />
+            <Text style={{ fontSize: Typography.xs, color: C.primary, maxWidth: 200 }} numberOfLines={1}>{item.url.replace(/^https?:\/\/(www\.)?/, '')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      <View style={{ flexDirection: 'row', gap: 4 }}>
+        <TouchableOpacity style={{ padding: 8, borderRadius: Radii.sm }} onPress={onEdit}>
+          <Ionicons name="pencil-outline" size={16} color={C.textTertiary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={{ padding: 8, borderRadius: Radii.sm }} onPress={onDelete} activeOpacity={0.6}>
+          <Ionicons name="trash-outline" size={16} color={C.danger} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
           {item.quantity && (
             <Text style={styles.itemQuantity}>📦 {item.quantity}</Text>
           )}
