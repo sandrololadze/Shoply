@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
+import { detectCategory } from '../lib/categories';
 import { useNetworkStore } from '../store/networkStore';
 import type {
   CreateItemInput,
@@ -168,6 +169,7 @@ export const useAddItem = (groupId: string) => {
           url: input.url ?? null,
           added_by: user.id,
           status: 'active',
+          category: input.category ?? detectCategory(input.name).id,
         })
         .select('*, added_by_profile:profiles!items_added_by_fkey(*)')
         .single();
@@ -203,6 +205,7 @@ export const useAddItem = (groupId: string) => {
         completed_by_profile: undefined,
         completed_at: null,
         sort_order: (previousItems?.length ?? 0) * 10,
+category: input.category ?? detectCategory(input.name).id,
         version: 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

@@ -19,6 +19,7 @@ import { useLanguageStore } from '../../../../src/store/languageStore';
 import { useProductSearch } from '../../../../src/hooks/useProductSearch';
 import { BarcodeScanner } from '../../../../src/components/BarcodeScanner';import { Avatar, Button, EmptyState, ErrorState, LoadingScreen } from '../../../../src/components/ui';
 import { Colors, Radii, Shadows, Spacing, Typography } from '../../../../src/lib/design';
+import { detectCategory } from '../../../../src/lib/categories';
 import type { Item } from '../../../../src/types';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -195,16 +196,20 @@ const handleBarcodeScan = async (barcode: string) => {
   if (isLoading) return <LoadingScreen message={t('loadingLists')} />;
   if (isError) return <ErrorState message="Failed to load items" onRetry={refetch} />;
 
+  const category = detectCategory(item.name);
+
   return (
-    <View style={styles.container}>
-      {group && (
-        <TouchableOpacity style={styles.shareBanner} onPress={handleShare}>
-          <View style={styles.shareLeft}>
-            <Ionicons name="link-outline" size={16} color={Colors.primary} />
-            <Text style={styles.shareCode}>{group.invite_code}</Text>
-          </View>
-          <Text style={styles.shareHint}>{t('tapToInvite')}</Text>
-        </TouchableOpacity>
+    <View style={[styles.itemRow, isCompleted && styles.itemRowCompleted, { borderLeftWidth: 4, borderLeftColor: isCompleted ? Colors.border : category.color }]}>
+      <View style={[styles.categoryIcon, { backgroundColor: isCompleted ? Colors.bgElevated : category.surface }]}>
+        <Text style={styles.categoryEmoji}>{category.emoji}</Text>
+      </View>
+      <TouchableOpacity
+        style={[styles.checkbox, isCompleted && styles.checkboxChecked, !isCompleted && { borderColor: category.color }]}
+        onPress={onToggle}
+        activeOpacity={0.7}
+      >
+        {isCompleted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+      </TouchableOpacity>
       )}
 
       <FlatList
@@ -532,7 +537,8 @@ const styles = StyleSheet.create({
   },
   itemRowCompleted: { opacity: 0.7 },
   checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  checkboxChecked: { backgroundColor: Colors.success, borderColor: Colors.success },
+  categoryIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  categoryEmoji: { fontSize: 20 },checkboxChecked: { backgroundColor: Colors.success, borderColor: Colors.success },
   itemContent: { flex: 1, gap: 4 },
   itemName: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.text, lineHeight: 22 },
   itemNameCompleted: { textDecorationLine: 'line-through', color: Colors.textTertiary },

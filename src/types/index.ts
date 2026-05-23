@@ -22,11 +22,12 @@ export interface Profile {
   username: string;
   display_name: string;
   avatar_url: string | null;
+category?: string | null;
   push_token: string | null;
   created_at: string;
   updated_at: string;
 }
-
+category?: string;
 export interface Group {
   id: string;
   name: string;
