@@ -24,22 +24,6 @@ import { detectCategory } from '../../../../src/lib/categories';
 import type { Item } from '../../../../src/types';
 import { formatDistanceToNow } from 'date-fns';
 
-// Extracts a numeric price from strings like "€2.50", "2,99", "3x €1.20", "€1.50 x2"
-function parsePrice(quantity?: string | null): number {
-  if (!quantity) return 0;
-  // Handle "3x €1.20" or "€1.20 x3" patterns
-  const multiMatch = quantity.match(/(\d+)\s*[xX×]\s*[€$£]?\s*(\d+[.,]\d{1,2})|[€$£]?\s*(\d+[.,]\d{1,2})\s*[xX×]\s*(\d+)/);
-  if (multiMatch) {
-    const count = parseFloat(multiMatch[1] || multiMatch[4]);
-    const price = parseFloat((multiMatch[2] || multiMatch[3]).replace(',', '.'));
-    return count * price;
-  }
-  // Handle plain price like "€2.50" or "2,99"
-  const match = quantity.match(/[€$£]?\s*(\d+[.,]\d{1,2})/);
-  if (match) return parseFloat(match[1].replace(',', '.'));
-  return 0;
-}
-
 const itemSchema = z.object({
   name: z.string().min(1, 'Item name required').max(200),
   quantity: z.string().max(50).optional(),
@@ -99,7 +83,13 @@ export default function GroupDetailScreen() {
 
   const handleAddItem = async (data: ItemForm) => {
     try {
-      await addItem.mutateAsync({ name: data.name, quantity: data.quantity, price: data.price ? parseFloat(data.price.replace(',', '.')) : null, notes: data.notes, url: data.url || undefined });
+      await addItem.mutateAsync({
+        name: data.name,
+        quantity: data.quantity,
+        price: data.price ? parseFloat(data.price.replace(',', '.')) : null,
+        notes: data.notes,
+        url: data.url || undefined,
+      });
       setShowAddItem(false);
       addForm.reset();
     } catch (err: unknown) {
@@ -114,13 +104,27 @@ export default function GroupDetailScreen() {
 
   const openEdit = (item: Item) => {
     setEditingItem(item);
-    editForm.reset({ name: item.name, quantity: item.quantity ?? '', price: item.price != null ? String(item.price) : '', notes: item.notes ?? '', url: item.url ?? '' });
+    editForm.reset({
+      name: item.name,
+      quantity: item.quantity ?? '',
+      price: item.price != null ? String(item.price) : '',
+      notes: item.notes ?? '',
+      url: item.url ?? '',
+    });
   };
 
   const handleEditItem = async (data: ItemForm) => {
     if (!editingItem) return;
     try {
-      await editItem.mutateAsync({ itemId: editingItem.id, updates: { ...data, price: data.price ? parseFloat(data.price.replace(',', '.')) : null, url: data.url || undefined, version: editingItem.version } });
+      await editItem.mutateAsync({
+        itemId: editingItem.id,
+        updates: {
+          ...data,
+          price: data.price ? parseFloat(data.price.replace(',', '.')) : null,
+          url: data.url || undefined,
+          version: editingItem.version,
+        },
+      });
       setEditingItem(null);
       Toast.show({ type: 'success', text1: 'Item updated' });
     } catch (err: unknown) {
@@ -254,18 +258,6 @@ export default function GroupDetailScreen() {
         ) : null}
       />
 
-      alignItems: 'center' }}>
-              <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>Still needed</Text>
-              <Text style={{ fontSize: Typography.sm, fontWeight: Typography.bold, color: C.warning }}>€{totalActive.toFixed(2)}</Text>
-            </View>
-            <View style={{ flex: 1, backgroundColor: C.bgElevated, borderRadius: Radii.md, padding: Spacing.sm, alignItems: 'center' }}>
-              <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>In basket</Text>
-              <Text style={{ fontSize: Typography.sm, fontWeight: Typography.bold, color: C.success }}>€{totalCompleted.toFixed(2)}</Text>
-            </View>
-          </View>
-        </View>
-      )}
-
       <View style={{ position: 'absolute', bottom: 24, right: 24, gap: 12, alignItems: 'center' }}>
         <TouchableOpacity
           style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.bgCard, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.primary, ...Shadows.md }}
@@ -328,7 +320,7 @@ function ItemRow({ item, currentUserId, onToggle, onEdit, onDelete, youLabel, C 
           {item.quantity && (
             <Text style={{ fontSize: Typography.xs, color: C.textSecondary, backgroundColor: C.bgElevated, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radii.full }}>📦 {item.quantity}</Text>
           )}
-          {item.price != null && (
+          {item.price != null && item.price > 0 && (
             <Text style={{ fontSize: Typography.xs, color: C.success, backgroundColor: C.successLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radii.full, fontWeight: Typography.semibold }}>€{Number(item.price).toFixed(2)}</Text>
           )}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
@@ -444,6 +436,7 @@ function ItemFormModal({ visible, title, submitLabel, form, onSubmit, onClose, i
               )} />
             </View>
           </View>
+
           <View style={{ gap: Spacing.xs }}>
             <Text style={{ fontSize: Typography.sm, fontWeight: Typography.semibold, color: C.text }}>{t('notes')}</Text>
             <Controller control={form.control} name="notes" render={({ field: { value, onChange, onBlur } }) => (
