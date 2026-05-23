@@ -234,16 +234,27 @@ export default function GroupDetailScreen() {
           );
         }}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+        ListFooterComponent={hasPrices ? (
+          <View style={{ marginTop: Spacing.xl, marginBottom: Spacing.sm, backgroundColor: C.bgCard, borderRadius: Radii.lg, padding: Spacing.md, borderWidth: 1, borderColor: C.border, ...Shadows.md }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md }}>
+              <Text style={{ fontSize: Typography.xs, fontWeight: Typography.semibold, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: 1 }}>💰 Totaal</Text>
+              <Text style={{ fontSize: Typography.lg, fontWeight: Typography.bold, color: C.primary }}>€{totalAll.toFixed(2)}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              <View style={{ flex: 1, backgroundColor: C.bgElevated, borderRadius: Radii.md, padding: Spacing.sm, alignItems: 'center' }}>
+                <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>Nog te kopen</Text>
+                <Text style={{ fontSize: Typography.sm, fontWeight: Typography.bold, color: C.warning }}>€{totalActive.toFixed(2)}</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: C.bgElevated, borderRadius: Radii.md, padding: Spacing.sm, alignItems: 'center' }}>
+                <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>In mandje</Text>
+                <Text style={{ fontSize: Typography.sm, fontWeight: Typography.bold, color: C.success }}>€{totalCompleted.toFixed(2)}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
       />
 
-      {hasPrices && (
-        <View style={{ position: 'absolute', bottom: 110, left: Spacing.base, right: 90, backgroundColor: C.bgCard, borderRadius: Radii.lg, padding: Spacing.md, ...Shadows.md, borderWidth: 1, borderColor: C.border }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <Text style={{ fontSize: Typography.xs, fontWeight: Typography.semibold, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: 1 }}>💰 Total</Text>
-            <Text style={{ fontSize: Typography.lg, fontWeight: Typography.bold, color: C.primary }}>€{totalAll.toFixed(2)}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', gap: Spacing.base }}>
-            <View style={{ flex: 1, backgroundColor: C.bgElevated, borderRadius: Radii.md, padding: Spacing.sm, alignItems: 'center' }}>
+      alignItems: 'center' }}>
               <Text style={{ fontSize: Typography.xs, color: C.textTertiary }}>Still needed</Text>
               <Text style={{ fontSize: Typography.sm, fontWeight: Typography.bold, color: C.warning }}>€{totalActive.toFixed(2)}</Text>
             </View>
