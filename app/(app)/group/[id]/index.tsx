@@ -157,6 +157,18 @@ export default function GroupDetailScreen() {
   const activeItems = items?.filter((i) => i.status === 'active') ?? [];
   const completedItems = items?.filter((i) => i.status === 'completed') ?? [];
 
+  const itemLabels = {
+    productUrl: t('productUrl'),
+    urlPlaceholder: t('urlPlaceholder'),
+    autoFillHint: t('autoFillHint'),
+    itemName: t('itemName'),
+    itemNamePlaceholder: t('itemNamePlaceholder'),
+    quantityPrice: t('quantityPrice'),
+    quantityPlaceholder: t('quantityPlaceholder'),
+    notes: t('notes'),
+    notesPlaceholder: t('notesPlaceholder'),
+  };
+
   if (isLoading) return <LoadingScreen message={t('loadingLists')} />;
   if (isError) return <ErrorState message="Failed to load items" onRetry={refetch} />;
 
@@ -224,21 +236,10 @@ export default function GroupDetailScreen() {
         onSubmit={handleAddItem}
         onClose={() => { setShowAddItem(false); addForm.reset(); }}
         isLoading={addItem.isPending}
-        labels={{
-          productUrl: t('productUrl'),
-          urlPlaceholder: t('urlPlaceholder'),
-          autoFillHint: t('autoFillHint'),
-          itemName: t('itemName'),
-          itemNamePlaceholder: t('itemNamePlaceholder'),
-          quantityPrice: t('quantityPrice'),
-          quantityPlaceholder: t('quantityPlaceholder'),
-          notes: t('notes'),
-          notesPlaceholder: t('notesPlaceholder'),
-        }}
-      />
+        labels={itemLabels}
       />
 
-     <ItemFormModal
+      <ItemFormModal
         visible={!!editingItem}
         title={t('editItem')}
         submitLabel={t('saveChanges')}
@@ -246,18 +247,7 @@ export default function GroupDetailScreen() {
         onSubmit={handleEditItem}
         onClose={() => setEditingItem(null)}
         isLoading={editItem.isPending}
-        labels={{
-          productUrl: t('productUrl'),
-          urlPlaceholder: t('urlPlaceholder'),
-          autoFillHint: t('autoFillHint'),
-          itemName: t('itemName'),
-          itemNamePlaceholder: t('itemNamePlaceholder'),
-          quantityPrice: t('quantityPrice'),
-          quantityPlaceholder: t('quantityPlaceholder'),
-          notes: t('notes'),
-          notesPlaceholder: t('notesPlaceholder'),
-        }}
-      />
+        labels={itemLabels}
       />
     </View>
   );
