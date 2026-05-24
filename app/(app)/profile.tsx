@@ -36,18 +36,32 @@ export default function ProfileScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true, aspect: [1, 1], quality: 0.7,
+      base64: true,
     });
     if (result.canceled) return;
     setUploading(true);
     try {
-      const uri = result.assets[0].uri;
-      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const asset = result.assets[0];
+      const ext = asset.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
       const path = `${user.id}/avatar.${ext}`;
-      const response = await fetch(uri);
-      const blob = await response.blob()
-      const { error: uploadError } = await supabase.storage
-        .from('avatars').upload(path, blob, { contentType: `image/${ext}`, upsert: true });
-      if (uploadError) throw uploadError;
+      const contentType = `image/${ext}`;
+      if (asset.base64) {
+        const byteCharacters = atob(asset.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const { error: uploadError } = await supabase.storage
+          .from('avatars').upload(path, byteArray, { contentType, upsert: true });
+        if (uploadError) throw uploadError;
+      } else {
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const { error: uploadError } = await supabase.storage
+          .from('avatars').upload(path, blob, { contentType, upsert: true });
+        if (uploadError) throw uploadError;
+      }
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
       await updateProfile({ avatar_url: `${publicUrl}?t=${Date.now()}` });
       Toast.show({ type: 'success', text1: 'Profielfoto bijgewerkt!' });
@@ -125,8 +139,6 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={dynamicStyles.container} contentContainerStyle={styles.content}>
-
-      {/* Avatar + name */}
       <View style={styles.avatarSection}>
         <TouchableOpacity onPress={pickAndUploadAvatar} disabled={uploading} activeOpacity={0.8}>
           <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: C.primarySurface, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: C.primary }}>
@@ -145,7 +157,6 @@ export default function ProfileScreen() {
             <Ionicons name="camera" size={13} color="#fff" />
           </View>
         </TouchableOpacity>
-
         {editing ? (
           <TextInput
             style={[styles.nameInput, { borderBottomColor: C.primary, color: C.text }]}
@@ -162,7 +173,6 @@ export default function ProfileScreen() {
         <Text style={dynamicStyles.email}>{user.email}</Text>
       </View>
 
-      {/* Edit actions */}
       <View style={styles.editActions}>
         {editing ? (
           <>
@@ -174,7 +184,6 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      {/* Appearance */}
       <View style={dynamicStyles.section}>
         <Text style={dynamicStyles.sectionTitle}>Appearance</Text>
         <View style={dynamicStyles.settingRow}>
@@ -201,7 +210,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Language */}
       <View style={dynamicStyles.section}>
         <Text style={dynamicStyles.sectionTitle}>Language / Taal</Text>
         <View style={[dynamicStyles.settingRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 12 }]}>
@@ -220,7 +228,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Notifications */}
       <View style={dynamicStyles.section}>
         <Text style={dynamicStyles.sectionTitle}>Notifications</Text>
         <View style={dynamicStyles.settingRow}>
@@ -235,7 +242,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* App info */}
       <View style={dynamicStyles.section}>
         <Text style={dynamicStyles.sectionTitle}>App</Text>
         <TouchableOpacity style={dynamicStyles.settingRow} onPress={() => setModalContent('about')} activeOpacity={0.7}>
