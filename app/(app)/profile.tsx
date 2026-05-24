@@ -13,6 +13,9 @@ import { useLanguageStore, LANGUAGES } from '../../src/store/languageStore';
 import { registerForPushNotifications } from '../../src/lib/notifications';
 import { Avatar, Button } from '../../src/components/ui';
 import { useColors, Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'react-native';
+import { supabase } from '../../src/lib/supabase';
 
 export default function ProfileScreen() {
   const { user, updateProfile, signOut, isLoading } = useAuthStore();
@@ -23,6 +26,38 @@ export default function ProfileScreen() {
   const [displayName, setDisplayName] = useState(user?.profile.display_name ?? '');
   const [notificationsEnabled, setNotificationsEnabled] = useState(!!user?.profile.push_token);
   const [modalContent, setModalContent] = useState<null | 'about' | 'privacy' | 'terms'>(null);
+
+  const [uploading, setUploading] = useState(false);
+  const avatarUrl = user?.profile?.avatar_url;
+
+  const pickAndUploadAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, aspect: [1, 1], quality: 0.7,
+    });
+    if (result.canceled) return;
+    setUploading(true);
+    try {
+      const uri = result.assets[0].uri;
+      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const path = `${user!.id}/avatar.${ext}`;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const arrayBuffer = await new Response(blob).arrayBuffer();
+      const { error: uploadError } = await supabase.storage
+        .from('avatars').upload(path, arrayBuffer, { contentType: `image/${ext}`, upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      await updateProfile({ avatar_url: `${publicUrl}?t=${Date.now()}` });
+      Toast.show({ type: 'success', text1: 'Profielfoto bijgewerkt!' });
+    } catch {
+      Toast.show({ type: 'error', text1: 'Upload mislukt' });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -96,7 +131,23 @@ export default function ProfileScreen() {
 
       {/* Avatar + name */}
       <View style={styles.avatarSection}>
-        <Avatar userId={user.id} displayName={user.profile.display_name} size={80} />
+        <Avatar <TouchableOpacity onPress={pickAndUploadAvatar} disabled={uploading} activeOpacity={0.8}>
+          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: C.primarySurface, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: C.primary }}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={{ width: 78, height: 78, borderRadius: 39 }} resizeMode="cover" />
+            ) : (
+              <Avatar userId={user.id} displayName={user.profile.display_name} size={80} />
+            )}
+            {uploading && (
+              <View style={{ position: 'absolute', width: 78, height: 78, borderRadius: 39, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="cloud-upload-outline" size={24} color="#fff" />
+              </View>
+            )}
+          </View>
+          <View style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.bg }}>
+            <Ionicons name="camera" size={13} color="#fff" />
+          </View>
+        </TouchableOpacity>
         {editing ? (
           <TextInput
             style={[styles.nameInput, { borderBottomColor: C.primary, color: C.text }]}
