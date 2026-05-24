@@ -45,9 +45,10 @@ export default function ProfileScreen() {
       const path = `${user.id}/avatar.${ext}`;
       const response = await fetch(uri);
       const blob = await response.blob();
-      const arrayBuffer = await new Response(blob).arrayBuffer();
+      const response = await fetch(uri);
+      const blob = await response.blob();
       const { error: uploadError } = await supabase.storage
-        .from('avatars').upload(path, arrayBuffer, { contentType: `image/${ext}`, upsert: true });
+        .from('avatars').upload(path, blob, { contentType: `image/${ext}`, upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
       await updateProfile({ avatar_url: `${publicUrl}?t=${Date.now()}` });
