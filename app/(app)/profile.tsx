@@ -131,7 +131,6 @@ export default function ProfileScreen() {
 
       {/* Avatar + name */}
       <View style={styles.avatarSection}>
-        <Avatar <TouchableOpacity onPress={pickAndUploadAvatar} disabled={uploading} activeOpacity={0.8}>
           <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: C.primarySurface, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: C.primary }}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={{ width: 78, height: 78, borderRadius: 39 }} resizeMode="cover" />
