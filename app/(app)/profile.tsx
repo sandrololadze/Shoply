@@ -53,8 +53,8 @@ export default function ProfileScreen() {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
       await updateProfile({ avatar_url: `${publicUrl}?t=${Date.now()}` });
       Toast.show({ type: 'success', text1: 'Profielfoto bijgewerkt!' });
-    } catch {
-      Toast.show({ type: 'error', text1: 'Upload mislukt' });
+    } catch (err: any) {
+      Toast.show({ type: 'error', text1: 'Upload mislukt', text2: err?.message ?? String(err) });
     } finally {
       setUploading(false);
     }
