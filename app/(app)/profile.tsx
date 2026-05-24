@@ -44,9 +44,7 @@ export default function ProfileScreen() {
       const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
       const path = `${user.id}/avatar.${ext}`;
       const response = await fetch(uri);
-      const blob = await response.blob();
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const blob = await response.blob()
       const { error: uploadError } = await supabase.storage
         .from('avatars').upload(path, blob, { contentType: `image/${ext}`, upsert: true });
       if (uploadError) throw uploadError;
