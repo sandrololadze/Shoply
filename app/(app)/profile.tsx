@@ -1,20 +1,19 @@
 // app/(app)/profile.tsx
 import React, { useState } from 'react';
 import {
-  Modal, ScrollView, StyleSheet, Switch, Text,
-  TextInput, TouchableOpacity, View,
+  Modal, ScrollView, StyleSheet, Switch, Text, Image,
+  TextInput, TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../src/store/authStore';
 import { useThemeStore, THEMES } from '../../src/store/themeStore';
 import { useLanguageStore, LANGUAGES } from '../../src/store/languageStore';
 import { registerForPushNotifications } from '../../src/lib/notifications';
 import { Avatar, Button } from '../../src/components/ui';
 import { useColors, Colors, Radii, Shadows, Spacing, Typography } from '../../src/lib/design';
-import * as ImagePicker from 'expo-image-picker';
-import { Image } from 'react-native';
 import { supabase } from '../../src/lib/supabase';
 
 export default function ProfileScreen() {
@@ -26,9 +25,10 @@ export default function ProfileScreen() {
   const [displayName, setDisplayName] = useState(user?.profile.display_name ?? '');
   const [notificationsEnabled, setNotificationsEnabled] = useState(!!user?.profile.push_token);
   const [modalContent, setModalContent] = useState<null | 'about' | 'privacy' | 'terms'>(null);
-
   const [uploading, setUploading] = useState(false);
   const avatarUrl = user?.profile?.avatar_url;
+
+  if (!user) return null;
 
   const pickAndUploadAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -42,7 +42,7 @@ export default function ProfileScreen() {
     try {
       const uri = result.assets[0].uri;
       const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
-      const path = `${user!.id}/avatar.${ext}`;
+      const path = `${user.id}/avatar.${ext}`;
       const response = await fetch(uri);
       const blob = await response.blob();
       const arrayBuffer = await new Response(blob).arrayBuffer();
@@ -58,8 +58,6 @@ export default function ProfileScreen() {
       setUploading(false);
     }
   };
-
-  if (!user) return null;
 
   const handleSave = async () => {
     if (!displayName.trim()) {
@@ -131,6 +129,7 @@ export default function ProfileScreen() {
 
       {/* Avatar + name */}
       <View style={styles.avatarSection}>
+        <TouchableOpacity onPress={pickAndUploadAvatar} disabled={uploading} activeOpacity={0.8}>
           <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: C.primarySurface, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: C.primary }}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={{ width: 78, height: 78, borderRadius: 39 }} resizeMode="cover" />
@@ -139,7 +138,7 @@ export default function ProfileScreen() {
             )}
             {uploading && (
               <View style={{ position: 'absolute', width: 78, height: 78, borderRadius: 39, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="cloud-upload-outline" size={24} color="#fff" />
+                <ActivityIndicator color="#fff" />
               </View>
             )}
           </View>
@@ -147,6 +146,7 @@ export default function ProfileScreen() {
             <Ionicons name="camera" size={13} color="#fff" />
           </View>
         </TouchableOpacity>
+
         {editing ? (
           <TextInput
             style={[styles.nameInput, { borderBottomColor: C.primary, color: C.text }]}
@@ -178,8 +178,6 @@ export default function ProfileScreen() {
       {/* Appearance */}
       <View style={dynamicStyles.section}>
         <Text style={dynamicStyles.sectionTitle}>Appearance</Text>
-
-        {/* Dark mode toggle */}
         <View style={dynamicStyles.settingRow}>
           <View style={styles.settingLeft}>
             <Ionicons name={darkMode ? 'moon' : 'sunny-outline'} size={20} color={C.text} />
@@ -190,8 +188,6 @@ export default function ProfileScreen() {
           </View>
           <Switch value={darkMode} onValueChange={toggleDarkMode} trackColor={{ true: C.primary, false: C.border }} thumbColor="#FFFFFF" />
         </View>
-
-        {/* Theme kleuren */}
         <View style={[dynamicStyles.settingRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 12 }]}>
           <Text style={dynamicStyles.settingLabel}>Color Theme</Text>
           <View style={styles.themeRow}>
@@ -269,7 +265,6 @@ export default function ProfileScreen() {
       <Text style={dynamicStyles.version}>Shoply v1.0.0</Text>
       <Button label="Sign Out" onPress={handleSignOut} variant="danger" style={styles.signOutBtn} />
 
-      {/* Info Modal */}
       <Modal visible={!!modalContent} transparent animationType="slide" onRequestClose={() => setModalContent(null)}>
         <View style={dynamicStyles.modalBackdrop}>
           <View style={dynamicStyles.modalContent}>
