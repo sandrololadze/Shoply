@@ -47,6 +47,11 @@ export default function GroupsScreen() {
       setShowCreate(false);
       createForm.reset();
       router.push(`/(app)/group/${group.id}/`);
+      if (isGuest) {
+        setTimeout(() => {
+          Toast.show({ type: 'info', text1: '⚠️ Gast account', text2: 'Maak een account aan om je lijst te bewaren!', visibilityTime: 5000 });
+        }, 1000);
+      }
     } catch {
       Toast.show({ type: 'error', text1: 'Failed to create list' });
     }
@@ -58,6 +63,11 @@ export default function GroupsScreen() {
       setShowJoin(false);
       joinForm.reset();
       router.push(`/(app)/group/${groupId}/`);
+      if (isGuest) {
+        setTimeout(() => {
+          Toast.show({ type: 'info', text1: '⚠️ Gast account', text2: 'Maak een account aan om je lijst te bewaren!', visibilityTime: 5000 });
+        }, 1000);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Invalid code';
       Toast.show({ type: 'error', text1: 'Could not join', text2: message });
